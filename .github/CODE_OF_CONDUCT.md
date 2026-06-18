@@ -24,4 +24,4 @@ claim under review.
 
 Maintainers may edit, hide, or delete comments; close issues; block users; or
 reject contributions that violate this code. Security-sensitive reports should
-follow `SECURITY.md`.
+follow `.github/SECURITY.md`.

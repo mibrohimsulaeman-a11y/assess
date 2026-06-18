@@ -2,7 +2,7 @@
 
 For bugs and feature requests, use GitHub Issues.
 
-For security issues, follow `SECURITY.md` instead of opening a public issue.
+For security issues, follow `.github/SECURITY.md` instead of opening a public issue.
 
 For roadmap discussion, open a focused issue with:
 

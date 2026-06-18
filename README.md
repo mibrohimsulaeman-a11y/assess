@@ -188,7 +188,7 @@ node packages/core/runtime/assess-run.mjs --repo packages/core/src --out .assess
 ASSESS_GRAPH="$(pwd)/.assessment/assessment-graph.json" pnpm dev:dashboard
 ```
 
-When `ASSESS_GRAPH` is set, the dev server exposes that generated graph as `/__assessment_graph__`, so the dashboard shows the exact artifact emitted by the assessment process. See [`docs/DASHBOARD_CONCEPT.md`](./docs/DASHBOARD_CONCEPT.md).
+When `ASSESS_GRAPH` is set, the dev server exposes that generated graph as `/__assessment_graph__`, so the dashboard shows the exact artifact emitted by the assessment process.
 
 Build all packages:
 
@@ -215,8 +215,7 @@ Related modes planned by the skill contract:
 /assess:assess report
 ```
 
-The skill contract is present in `skills/assess/SKILL.md`. The full local CLI
-and production scanner are tracked in `ROADMAP.md`.
+The skill contract is present in `skills/assess/SKILL.md`.
 
 ---
 
@@ -248,30 +247,12 @@ honestly claim about this repo?"
 
 ---
 
-## Roadmap
-
-See [`ROADMAP.md`](./ROADMAP.md). The next critical milestone is a real
-end-to-end demo:
-
-```text
-assess run --repo . --intent intent-spec.md --out .assessment/
-```
-
-That demo must read a real TS/JS repo, emit a valid graph, open in the dashboard,
-and prove at least one missing implementation with bounded evidence.
-
----
 
 ## Contributing
 
-Contributions are welcome while the project is still early. Start with:
+Contributions are welcome while the project is still early. Start with [`CONTRIBUTING.md`](./.github/CONTRIBUTING.md).
 
-- [`CONTRIBUTING.md`](./CONTRIBUTING.md)
-- [`ROADMAP.md`](./ROADMAP.md)
-- [`docs/OPEN_SOURCE_LAUNCH.md`](./docs/OPEN_SOURCE_LAUNCH.md)
-
-Good first contributions are scanner fixtures, graph validator cases, dashboard
-UX improvements, and small docs fixes.
+Good first contributions are scanner fixtures, graph validator cases, dashboard UX improvements, and small docs fixes.
 
 ---
 
