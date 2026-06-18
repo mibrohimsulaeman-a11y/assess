@@ -25,7 +25,7 @@
     "ci:smoke": "node packages/core/test/run-fixtures.cjs && node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
+    "typescript": "^6.0.3",
     "@types/node": "^22.10.0"
   },
   "repository": {
