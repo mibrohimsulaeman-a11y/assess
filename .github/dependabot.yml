@@ -5,8 +5,34 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      dashboard-runtime:
+        patterns:
+          - react
+          - react-dom
+          - reactflow
+          - zustand
+      build-tooling:
+        patterns:
+          - typescript
+          - "@types/*"
+          - vite
+          - "@vitejs/*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
