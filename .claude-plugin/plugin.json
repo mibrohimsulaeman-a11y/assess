@@ -1,0 +1,53 @@
+{
+  "name": "assess",
+  "description": "An evidence-bound intent-vs-code assessment layer for Claude Code and tool agents. Install it as a plugin to give your coding agent a deterministic assessment boundary: it reads a repo, builds an index, generates a validated assessment-graph.json, and returns gaps in three directions (intent\u2192code, code\u2192intent, baseline\u2192code). Every finding cites deterministic evidence or a bounded missing-code proof, and anything NOT assessed is named explicitly. Rendered on an interactive dashboard. It never edits your code.",
+  "version": "2.0.0",
+  "author": {
+    "name": "Boim L",
+    "url": "https://github.com/mibrohimsulaeman-a11y"
+  },
+  "homepage": "https://github.com/mibrohimsulaeman-a11y/assess",
+  "repository": "https://github.com/mibrohimsulaeman-a11y/assess",
+  "license": "MIT",
+  "keywords": [
+    "assessment",
+    "assessment-engine",
+    "intent-vs-code",
+    "code-review",
+    "ai-code-review",
+    "gap-analysis",
+    "grounding",
+    "audit",
+    "alignment",
+    "knowledge-graph",
+    "assessment-graph",
+    "dashboard",
+    "coverage",
+    "claude-plugin",
+    "mcp"
+  ],
+  "commands": [
+    "./plugins/assess/commands/assess.md",
+    "./plugins/assess/commands/assess-pr.md",
+    "./plugins/assess/commands/explain-finding.md"
+  ],
+  "agents": [
+    "./plugins/assess/agents/assessment-reviewer.md",
+    "./plugins/assess/agents/intent-gap-analyst.md"
+  ],
+  "skills": [
+    "./plugins/assess/skills/"
+  ],
+  "hooks": [
+    "./plugins/assess/hooks/pre-commit-assess.json",
+    "./plugins/assess/hooks/post-edit-assess.json"
+  ],
+  "mcpServers": {
+    "assess": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/plugins/assess/mcp/assess-server.mjs"
+      ]
+    }
+  }
+}

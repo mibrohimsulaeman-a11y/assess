@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+coverage/
+.vite/
+
+# local assessment output
+.assessment/
+*.assessment-graph.local.json
+
+# runtime/editor noise
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env/secrets
+.env
+.env.*
+!.env.example
+
+# TypeScript incremental state
+*.tsbuildinfo

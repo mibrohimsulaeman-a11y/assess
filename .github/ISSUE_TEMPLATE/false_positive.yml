@@ -1,0 +1,37 @@
+name: Assessment false positive / false negative
+description: Report a finding that overclaims, underclaims, or misses evidence
+title: "assessment: "
+labels: [assessment, needs-triage]
+body:
+  - type: textarea
+    id: finding
+    attributes:
+      label: Finding
+      description: Paste the finding ID and relevant graph/report excerpt.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Issue type
+      options:
+        - False positive
+        - False negative
+        - Severity too high
+        - Severity too low
+        - Missing/invalid evidence
+        - Coverage status wrong
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is the assessment wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: minimal_repro
+    attributes:
+      label: Minimal reproduction or fixture idea
+      render: text

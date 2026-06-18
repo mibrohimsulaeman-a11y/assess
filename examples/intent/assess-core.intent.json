@@ -1,0 +1,55 @@
+{
+  "project": "assess-core",
+  "_comment": "Sample CONFIRMED intent spec for the deterministic core. expectedComponentIds reference real node ids the scanner emits (function:<relPath>:<name> / file:<relPath>). The last process intentionally references a component that does NOT exist, to demonstrate an evidence-bound `missing` finding with a bounded missing-code proof. Run: node packages/core/runtime/assess-run.mjs --repo packages/core/src --intent examples/intent/assess-core.intent.json --out .assessment",
+  "capabilities": [
+    {
+      "id": "capability:honesty-gate",
+      "label": "Honesty gate",
+      "description": "No finding may claim more than its evidence supports; absence must be proven and severity is capped by evidence strength.",
+      "status": "CONFIRMED",
+      "ownsComponentIds": [
+        "function:assess/severity.ts:resolveSeverity",
+        "function:assess/missing-code-proof.ts:computeMissingCodeProof"
+      ],
+      "processes": [
+        {
+          "id": "intent:honesty-gate.cap-severity",
+          "label": "Cap severity by evidence strength",
+          "invariant": "unverifiable evidence caps at P2; inferred without a 2nd verified fact caps at P1",
+          "criticalPath": true,
+          "expectedComponentIds": ["function:assess/severity.ts:resolveSeverity"]
+        },
+        {
+          "id": "intent:honesty-gate.prove-absence",
+          "label": "Prove absence before claiming missing",
+          "invariant": "only `absent` (full coverage, residues ruled out) may assert true absence",
+          "criticalPath": true,
+          "expectedComponentIds": ["function:assess/missing-code-proof.ts:computeMissingCodeProof"]
+        }
+      ]
+    },
+    {
+      "id": "capability:coverage-manifest",
+      "label": "Coverage manifest",
+      "description": "Every assessable node carries an explicit coverage status; nothing is silently skipped.",
+      "status": "CONFIRMED",
+      "ownsComponentIds": ["function:assess/coverage.ts:buildCoverageManifest"],
+      "processes": [
+        {
+          "id": "intent:coverage-manifest.account-every-node",
+          "label": "Account for every assessable node",
+          "invariant": "byStatus tallies must equal the number of assessable nodes",
+          "criticalPath": false,
+          "expectedComponentIds": ["function:assess/coverage.ts:buildCoverageManifest"]
+        },
+        {
+          "id": "intent:coverage-manifest.reconcile-spans",
+          "label": "Reconcile prior verdicts across reformat-only changes",
+          "invariant": "a reformat (same normalized fingerprint) must reuse the prior verdict, not re-judge",
+          "criticalPath": false,
+          "expectedComponentIds": ["function:overlay/reconcile.ts:reconcilePriorRun"]
+        }
+      ]
+    }
+  ]
+}

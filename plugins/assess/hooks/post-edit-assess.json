@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks",
+  "description": "After the agent edits a file, refresh the baseline assessment graph so the dashboard and findings stay current. Async, read-only, and advisory.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/packages/core/runtime/assess-run.mjs\" --repo \"${CLAUDE_PROJECT_DIR}\" --out \"${CLAUDE_PROJECT_DIR}/.assessment\" >/dev/null 2>&1 || true",
+            "timeout": 90,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

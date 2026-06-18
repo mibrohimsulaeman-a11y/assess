@@ -1,0 +1,39 @@
+{
+  "name": "assess",
+  "private": true,
+  "type": "module",
+  "description": "Judge a codebase against what it SHOULD be: derive intent, run the assessment engine across every area, and emit a gap-graph (assessment-graph.json) rendered on an interactive dashboard. Maps intent→code, code→intent, and baseline→code gaps. Never edits your code.",
+  "license": "MIT",
+  "author": "Boim L",
+  "keywords": [
+    "codebase-assessment",
+    "gap-analysis",
+    "intent-vs-code",
+    "knowledge-graph",
+    "assessment-engine",
+    "grounding",
+    "dashboard",
+    "claude-plugin"
+  ],
+  "packageManager": "pnpm@10.6.2",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev:dashboard": "pnpm --filter @assess/dashboard dev",
+    "validate:sample": "node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json",
+    "test:fixtures": "node packages/core/test/run-fixtures.cjs",
+    "test": "pnpm test:fixtures && pnpm validate:sample",
+    "ci:smoke": "node packages/core/test/run-fixtures.cjs && node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.10.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mibrohimsulaeman-a11y/assess.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mibrohimsulaeman-a11y/assess/issues"
+  },
+  "homepage": "https://github.com/mibrohimsulaeman-a11y/assess#readme"
+}

@@ -1,0 +1,402 @@
+{
+  "version": "2.0.0",
+  "kind": "assessment",
+  "binding": {
+    "assessedAtCommit": "a1b2c3d",
+    "intentSpecHash": "ispec:6f1c9e2a",
+    "generated": "2026-06-17T00:00:00.000Z"
+  },
+  "project": {
+    "name": "payments-service",
+    "languages": ["TypeScript"],
+    "frameworks": ["Express"],
+    "description": "Example assessment graph: charge + refund capability assessed against confirmed intent.",
+    "analyzedAt": "2026-06-17T00:00:00.000Z",
+    "gitCommitHash": "a1b2c3d"
+  },
+  "intents": [
+    {
+      "id": "capability:payments",
+      "type": "capability",
+      "name": "Payments",
+      "summary": "Charge and refund customers correctly and exactly once.",
+      "tags": ["intent"],
+      "complexity": "simple",
+      "intentMeta": { "status": "CONFIRMED", "owns": ["module:src/payments"] }
+    },
+    {
+      "id": "intent:payments.charge-idempotency",
+      "type": "intent",
+      "name": "Charge is idempotent",
+      "summary": "A retried charge with the same idempotency key must never double-charge.",
+      "tags": ["intent", "critical-path"],
+      "complexity": "simple",
+      "intentMeta": {
+        "status": "CONFIRMED",
+        "invariant": "persist idempotency key before any balance mutation",
+        "criticalPath": true
+      }
+    },
+    {
+      "id": "intent:payments.refund",
+      "type": "intent",
+      "name": "Refunds are supported",
+      "summary": "A settled charge can be fully or partially refunded.",
+      "tags": ["intent", "normal"],
+      "complexity": "simple",
+      "intentMeta": {
+        "status": "CONFIRMED",
+        "invariant": "a refund never exceeds the original captured amount",
+        "criticalPath": false
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "module:src/payments",
+      "type": "module",
+      "name": "payments",
+      "filePath": "src/payments",
+      "summary": "Payment domain module.",
+      "tags": ["domain"],
+      "complexity": "moderate",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "owned",
+        "findingIds": ["A-002"],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "inferred"
+      }
+    },
+    {
+      "id": "file:src/payments/charge.ts",
+      "type": "file",
+      "name": "charge.ts",
+      "filePath": "src/payments/charge.ts",
+      "summary": "Charge creation and capture.",
+      "tags": ["payments", "critical-path"],
+      "complexity": "complex",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "owned",
+        "findingIds": ["C-001"],
+        "readiness": "partial",
+        "worstSeverity": "P1",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:src/payments/charge.ts:charge",
+      "type": "function",
+      "name": "charge()",
+      "filePath": "src/payments/charge.ts",
+      "lineRange": [40, 78],
+      "summary": "Creates a charge and mutates the account balance.",
+      "tags": ["payments", "critical-path"],
+      "complexity": "complex",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "owned",
+        "findingIds": ["A-001"],
+        "readiness": "partial",
+        "worstSeverity": "P1",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:src/payments/discount.ts:applyDiscount",
+      "type": "function",
+      "name": "applyDiscount()",
+      "filePath": "src/payments/discount.ts",
+      "lineRange": [12, 40],
+      "summary": "Applies a percentage discount during checkout.",
+      "tags": ["payments"],
+      "complexity": "moderate",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": ["A-003"],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "file:src/webhooks/handler.ts",
+      "type": "file",
+      "name": "handler.ts",
+      "filePath": "src/webhooks/handler.ts",
+      "summary": "Dynamic webhook dispatcher (handlers resolved at runtime).",
+      "tags": ["webhooks"],
+      "complexity": "complex",
+      "assessment": {
+        "coverageStatus": "not_assessed",
+        "ownership": "infrastructure",
+        "findingIds": [],
+        "readiness": "unknown",
+        "worstSeverity": null,
+        "notAssessedReason": "handlers resolved dynamically; static index coverage insufficient to assess behavior"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:contains:module:src/payments->file:src/payments/charge.ts",
+      "source": "module:src/payments",
+      "target": "file:src/payments/charge.ts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": { "fact": "charge.ts is declared under src/payments" }
+    },
+    {
+      "id": "edge:contains:file:src/payments/charge.ts->function:src/payments/charge.ts:charge",
+      "source": "file:src/payments/charge.ts",
+      "target": "function:src/payments/charge.ts:charge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": { "fact": "charge() defined at charge.ts:40-78" }
+    },
+    {
+      "id": "edge:contains:module:src/payments->function:src/payments/discount.ts:applyDiscount",
+      "source": "module:src/payments",
+      "target": "function:src/payments/discount.ts:applyDiscount",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": { "fact": "applyDiscount() defined under src/payments" }
+    },
+    {
+      "id": "edge:owns:capability:payments->module:src/payments",
+      "source": "capability:payments",
+      "target": "module:src/payments",
+      "type": "owns",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": { "fact": "confirmed intent maps Payments capability to src/payments" }
+    },
+    {
+      "id": "edge:realizes:capability:payments->intent:payments.charge-idempotency",
+      "source": "capability:payments",
+      "target": "intent:payments.charge-idempotency",
+      "type": "realizes",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "id": "edge:realizes:capability:payments->intent:payments.refund",
+      "source": "capability:payments",
+      "target": "intent:payments.refund",
+      "type": "realizes",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "id": "gap:intent_to_code:intent:payments.charge-idempotency->function:src/payments/charge.ts:charge",
+      "source": "intent:payments.charge-idempotency",
+      "target": "function:src/payments/charge.ts:charge",
+      "type": "intent_to_code",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": { "direction": "intent_to_code", "status": "misaligned", "findingId": "A-001" },
+      "evidence": { "fact": "idempotency key persisted after balance mutation" }
+    },
+    {
+      "id": "gap:intent_to_code:intent:payments.refund->module:src/payments",
+      "source": "intent:payments.refund",
+      "target": "module:src/payments",
+      "type": "intent_to_code",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": { "direction": "intent_to_code", "status": "missing", "findingId": "A-002" },
+      "evidence": { "fact": "no refund symbol or route found in index" }
+    },
+    {
+      "id": "gap:code_to_intent:function:src/payments/discount.ts:applyDiscount->intent:UNCONFIRMED",
+      "source": "function:src/payments/discount.ts:applyDiscount",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": { "direction": "code_to_intent", "status": "unexplained", "findingId": "A-003" },
+      "evidence": { "fact": "discount logic on checkout path with no confirmed intent" }
+    },
+    {
+      "id": "gap:baseline_to_code:baseline->file:src/payments/charge.ts",
+      "source": "baseline",
+      "target": "file:src/payments/charge.ts",
+      "type": "baseline_to_code",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": { "direction": "baseline_to_code", "status": "violation", "findingId": "C-001" },
+      "evidence": { "fact": "await precedes balance mutation (race window)" }
+    }
+  ],
+  "findings": [
+    {
+      "id": "A-001",
+      "direction": "intent_to_code",
+      "category": "alignment.misalignment",
+      "claim": "charge() persists the idempotency key AFTER mutating the balance, so a retry can double-charge",
+      "evidence": {
+        "fact": "charge.ts:62 mutates balance; idempotency key written at charge.ts:71",
+        "filePath": "src/payments/charge.ts",
+        "lineRange": [62, 71],
+        "signals": ["invariant: persist idempotency key before any balance mutation", "on checkout call path"],
+        "strength": "verified"
+      },
+      "intentRef": "intent:payments.charge-idempotency",
+      "severity": "P1",
+      "confidence": "HIGH",
+      "explanation": "Confirmed critical-path intent; verified evidence. Rule P0 lowered to P1 because a unique-constraint backstop on the ledger reduces (not removes) the double-charge window.",
+      "recommendation": "Persist the idempotency key in the same transaction, before the balance mutation.",
+      "targetNodeIds": ["function:src/payments/charge.ts:charge", "intent:payments.charge-idempotency"],
+      "binding": {
+        "assessedAtCommit": "a1b2c3d",
+        "intentSpecHash": "ispec:6f1c9e2a",
+        "generated": "2026-06-17T00:00:00.000Z",
+        "spanSha256": "sha256:placeholder-charge",
+        "normalizedFingerprint": "nfp:placeholder-charge"
+      }
+    },
+    {
+      "id": "A-002",
+      "direction": "intent_to_code",
+      "category": "alignment.missing",
+      "claim": "Promised refund flow has no implementing path in the available index",
+      "evidence": {
+        "fact": "no symbol matching /refund/i and no route POST /refunds found in index",
+        "signals": ["index coverage for routes: 70%"],
+        "strength": "inferred"
+      },
+      "intentRef": "intent:payments.refund",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Absence is only not_found_in_index (route coverage 70%), so severity is capped at P2 and the claim is worded as 'not found', not 'missing'.",
+      "recommendation": "Confirm whether refunds are implemented elsewhere; if truly absent, implement or retract the intent.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": ["src/"],
+        "excludedRoots": ["node_modules/", "dist/"],
+        "requiredRecordTypes": ["symbol", "route"],
+        "coverage": { "required": 1.0, "actual": 0.7 },
+        "lowConfidenceResidues": ["src/webhooks/handler.ts (dynamic dispatch)"],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": ["module:src/payments", "intent:payments.refund"],
+      "binding": {
+        "assessedAtCommit": "a1b2c3d",
+        "intentSpecHash": "ispec:6f1c9e2a",
+        "generated": "2026-06-17T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "A-003",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "applyDiscount() runs on the checkout path but maps to no confirmed intent",
+      "evidence": {
+        "fact": "applyDiscount() called from charge() but absent from the confirmed intent model",
+        "filePath": "src/payments/discount.ts",
+        "lineRange": [12, 40],
+        "strength": "verified"
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Could be intentional-but-undocumented, dead code, or scope creep. Held at P2 against UNCONFIRMED intent pending owner confirmation.",
+      "recommendation": "Confirm whether discounts are intended; document the capability or remove the code.",
+      "targetNodeIds": ["function:src/payments/discount.ts:applyDiscount"],
+      "binding": {
+        "assessedAtCommit": "a1b2c3d",
+        "intentSpecHash": "ispec:6f1c9e2a",
+        "generated": "2026-06-17T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "C-001",
+      "direction": "baseline_to_code",
+      "category": "correctness",
+      "claim": "await on the gateway call precedes the balance mutation without a guard, opening a race window",
+      "evidence": {
+        "fact": "charge.ts:58 awaits gateway.capture(); charge.ts:62 mutates balance with no lock",
+        "filePath": "src/payments/charge.ts",
+        "lineRange": [58, 62],
+        "strength": "verified"
+      },
+      "severity": "P1",
+      "confidence": "HIGH",
+      "explanation": "Security-sensitive payment path floors severity at P1; verified evidence.",
+      "recommendation": "Hold a row lock or use a single atomic transaction across capture and balance mutation.",
+      "targetNodeIds": ["file:src/payments/charge.ts"],
+      "binding": {
+        "assessedAtCommit": "a1b2c3d",
+        "intentSpecHash": "ispec:6f1c9e2a",
+        "generated": "2026-06-17T00:00:00.000Z"
+      }
+    }
+  ],
+  "areas": [
+    {
+      "id": "area:payments",
+      "name": "payments",
+      "description": "Files under src/payments/",
+      "nodeIds": [
+        "module:src/payments",
+        "file:src/payments/charge.ts",
+        "function:src/payments/charge.ts:charge",
+        "function:src/payments/discount.ts:applyDiscount"
+      ],
+      "coverageStatus": "assessed",
+      "worstSeverity": "P1"
+    },
+    {
+      "id": "area:webhooks",
+      "name": "webhooks",
+      "description": "Files under src/webhooks/",
+      "nodeIds": ["file:src/webhooks/handler.ts"],
+      "coverageStatus": "not_assessed",
+      "worstSeverity": null
+    }
+  ],
+  "coverage": {
+    "totalAreas": 2,
+    "totalNodes": 5,
+    "byStatus": {
+      "assessed": 4,
+      "partial": 0,
+      "not_assessed": 1,
+      "coverage_insufficient": 0
+    },
+    "headlineTrust": "inferred",
+    "gaps": [
+      {
+        "scope": "webhooks",
+        "status": "not_assessed",
+        "reason": "no node in this area received an assessment verdict"
+      },
+      {
+        "scope": "handler.ts",
+        "status": "not_assessed",
+        "reason": "handlers resolved dynamically; static index coverage insufficient to assess behavior"
+      }
+    ]
+  },
+  "summary": {
+    "bySeverity": { "P0": 0, "P1": 2, "P2": 2, "P3": 0 },
+    "byCategory": {
+      "alignment.misalignment": 1,
+      "alignment.missing": 1,
+      "alignment.unexplained": 1,
+      "correctness": 1
+    },
+    "byDirection": {
+      "intent_to_code": 2,
+      "code_to_intent": 1,
+      "baseline_to_code": 1
+    },
+    "headline": "0 P0 / 2 P1 across 2 intent->code, 1 code->intent, 1 baseline findings (headline trust: inferred). 1 area not assessed."
+  }
+}
