@@ -2,370 +2,3308 @@
   "version": "2.0.0",
   "kind": "assessment",
   "binding": {
-    "assessedAtCommit": "a1b2c3d",
-    "intentSpecHash": "ispec:6f1c9e2a",
-    "generated": "2026-06-17T00:00:00.000Z"
+    "assessedAtCommit": "7c5817d",
+    "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+    "generated": "2026-06-19T23:35:54.687Z"
   },
   "project": {
-    "name": "payments-service",
-    "languages": ["TypeScript"],
-    "frameworks": ["Express"],
-    "description": "Example assessment graph: charge + refund capability assessed against confirmed intent.",
-    "analyzedAt": "2026-06-17T00:00:00.000Z",
-    "gitCommitHash": "a1b2c3d"
+    "name": "src",
+    "languages": [
+      "TypeScript"
+    ],
+    "frameworks": [],
+    "description": "intent-bound assessment",
+    "analyzedAt": "2026-06-19T23:35:54.687Z",
+    "gitCommitHash": "7c5817d"
   },
   "intents": [
     {
-      "id": "capability:payments",
+      "id": "capability:honesty-gate",
       "type": "capability",
-      "name": "Payments",
-      "summary": "Charge and refund customers correctly and exactly once.",
-      "tags": ["intent"],
-      "complexity": "simple",
-      "intentMeta": { "status": "CONFIRMED", "owns": ["module:src/payments"] }
-    },
-    {
-      "id": "intent:payments.charge-idempotency",
-      "type": "intent",
-      "name": "Charge is idempotent",
-      "summary": "A retried charge with the same idempotency key must never double-charge.",
-      "tags": ["intent", "critical-path"],
+      "name": "Honesty gate",
+      "summary": "No finding may claim more than its evidence supports; absence must be proven and severity is capped by evidence strength.",
+      "tags": [
+        "intent"
+      ],
       "complexity": "simple",
       "intentMeta": {
         "status": "CONFIRMED",
-        "invariant": "persist idempotency key before any balance mutation",
+        "owns": [
+          "function:assess/severity.ts:resolveSeverity",
+          "function:assess/missing-code-proof.ts:computeMissingCodeProof"
+        ]
+      }
+    },
+    {
+      "id": "intent:honesty-gate.cap-severity",
+      "type": "intent",
+      "name": "Cap severity by evidence strength",
+      "summary": "unverifiable evidence caps at P2; inferred without a 2nd verified fact caps at P1",
+      "tags": [
+        "intent",
+        "critical-path"
+      ],
+      "complexity": "simple",
+      "intentMeta": {
+        "status": "CONFIRMED",
+        "invariant": "unverifiable evidence caps at P2; inferred without a 2nd verified fact caps at P1",
         "criticalPath": true
       }
     },
     {
-      "id": "intent:payments.refund",
+      "id": "intent:honesty-gate.prove-absence",
       "type": "intent",
-      "name": "Refunds are supported",
-      "summary": "A settled charge can be fully or partially refunded.",
-      "tags": ["intent", "normal"],
+      "name": "Prove absence before claiming missing",
+      "summary": "only `absent` (full coverage, residues ruled out) may assert true absence",
+      "tags": [
+        "intent",
+        "critical-path"
+      ],
       "complexity": "simple",
       "intentMeta": {
         "status": "CONFIRMED",
-        "invariant": "a refund never exceeds the original captured amount",
+        "invariant": "only `absent` (full coverage, residues ruled out) may assert true absence",
+        "criticalPath": true
+      }
+    },
+    {
+      "id": "capability:coverage-manifest",
+      "type": "capability",
+      "name": "Coverage manifest",
+      "summary": "Every assessable node carries an explicit coverage status; nothing is silently skipped.",
+      "tags": [
+        "intent"
+      ],
+      "complexity": "simple",
+      "intentMeta": {
+        "status": "CONFIRMED",
+        "owns": [
+          "function:assess/coverage.ts:buildCoverageManifest"
+        ]
+      }
+    },
+    {
+      "id": "intent:coverage-manifest.account-every-node",
+      "type": "intent",
+      "name": "Account for every assessable node",
+      "summary": "byStatus tallies must equal the number of assessable nodes",
+      "tags": [
+        "intent",
+        "normal"
+      ],
+      "complexity": "simple",
+      "intentMeta": {
+        "status": "CONFIRMED",
+        "invariant": "byStatus tallies must equal the number of assessable nodes",
+        "criticalPath": false
+      }
+    },
+    {
+      "id": "intent:coverage-manifest.reconcile-spans",
+      "type": "intent",
+      "name": "Reconcile prior verdicts across reformat-only changes",
+      "summary": "a reformat (same normalized fingerprint) must reuse the prior verdict, not re-judge",
+      "tags": [
+        "intent",
+        "normal"
+      ],
+      "complexity": "simple",
+      "intentMeta": {
+        "status": "CONFIRMED",
+        "invariant": "a reformat (same normalized fingerprint) must reuse the prior verdict, not re-judge",
         "criticalPath": false
       }
     }
   ],
   "nodes": [
     {
-      "id": "module:src/payments",
-      "type": "module",
-      "name": "payments",
-      "filePath": "src/payments",
-      "summary": "Payment domain module.",
-      "tags": ["domain"],
+      "id": "file:assess/coverage.ts",
+      "type": "file",
+      "name": "coverage.ts",
+      "filePath": "assess/coverage.ts",
+      "summary": "TypeScript file, 103 lines, 4 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/coverage.ts:nodeCoverage",
+      "type": "function",
+      "name": "nodeCoverage",
+      "filePath": "assess/coverage.ts",
+      "lineRange": [
+        24,
+        26
+      ],
+      "summary": "function nodeCoverage (3 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/coverage.ts:areaCoverage",
+      "type": "function",
+      "name": "areaCoverage",
+      "filePath": "assess/coverage.ts",
+      "lineRange": [
+        29,
+        43
+      ],
+      "summary": "function areaCoverage (15 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-002"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:assess/coverage.ts:buildCoverageManifest",
+      "type": "function",
+      "name": "buildCoverageManifest",
+      "filePath": "assess/coverage.ts",
+      "lineRange": [
+        45,
+        93
+      ],
+      "summary": "function buildCoverageManifest (49 lines, exported)",
+      "tags": [
+        "exported"
+      ],
       "complexity": "moderate",
       "assessment": {
         "coverageStatus": "assessed",
-        "ownership": "owned",
-        "findingIds": ["A-002"],
-        "readiness": "partial",
-        "worstSeverity": "P2",
-        "trust": "inferred"
+        "ownership": "overclaimed",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
       }
     },
     {
-      "id": "file:src/payments/charge.ts",
+      "id": "function:assess/coverage.ts:isFullyCovered",
+      "type": "function",
+      "name": "isFullyCovered",
+      "filePath": "assess/coverage.ts",
+      "lineRange": [
+        96,
+        102
+      ],
+      "summary": "function isFullyCovered (7 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "file:assess/gap-engine.ts",
       "type": "file",
-      "name": "charge.ts",
-      "filePath": "src/payments/charge.ts",
-      "summary": "Charge creation and capture.",
-      "tags": ["payments", "critical-path"],
-      "complexity": "complex",
+      "name": "gap-engine.ts",
+      "filePath": "assess/gap-engine.ts",
+      "summary": "TypeScript file, 256 lines, 6 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
       "assessment": {
         "coverageStatus": "assessed",
-        "ownership": "owned",
-        "findingIds": ["C-001"],
-        "readiness": "partial",
-        "worstSeverity": "P1",
-        "trust": "verified"
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
       }
     },
     {
-      "id": "function:src/payments/charge.ts:charge",
+      "id": "function:assess/gap-engine.ts:resetFindingIds",
       "type": "function",
-      "name": "charge()",
-      "filePath": "src/payments/charge.ts",
-      "lineRange": [40, 78],
-      "summary": "Creates a charge and mutates the account balance.",
-      "tags": ["payments", "critical-path"],
-      "complexity": "complex",
+      "name": "resetFindingIds",
+      "filePath": "assess/gap-engine.ts",
+      "lineRange": [
+        56,
+        58
+      ],
+      "summary": "function resetFindingIds (3 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
       "assessment": {
         "coverageStatus": "assessed",
-        "ownership": "owned",
-        "findingIds": ["A-001"],
-        "readiness": "partial",
-        "worstSeverity": "P1",
-        "trust": "verified"
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
       }
     },
     {
-      "id": "function:src/payments/discount.ts:applyDiscount",
+      "id": "function:assess/gap-engine.ts:nextId",
       "type": "function",
-      "name": "applyDiscount()",
-      "filePath": "src/payments/discount.ts",
-      "lineRange": [12, 40],
-      "summary": "Applies a percentage discount during checkout.",
-      "tags": ["payments"],
+      "name": "nextId",
+      "filePath": "assess/gap-engine.ts",
+      "lineRange": [
+        59,
+        62
+      ],
+      "summary": "function nextId (4 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/gap-engine.ts:edge",
+      "type": "function",
+      "name": "edge",
+      "filePath": "assess/gap-engine.ts",
+      "lineRange": [
+        64,
+        83
+      ],
+      "summary": "function edge (20 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/gap-engine.ts:assessIntentToCode",
+      "type": "function",
+      "name": "assessIntentToCode",
+      "filePath": "assess/gap-engine.ts",
+      "lineRange": [
+        91,
+        174
+      ],
+      "summary": "function assessIntentToCode (84 lines, exported)",
+      "tags": [
+        "exported"
+      ],
       "complexity": "moderate",
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": ["A-003"],
+        "findingIds": [
+          "A-003"
+        ],
         "readiness": "partial",
         "worstSeverity": "P2",
         "trust": "verified"
       }
     },
     {
-      "id": "file:src/webhooks/handler.ts",
+      "id": "function:assess/gap-engine.ts:assessCodeToIntent",
+      "type": "function",
+      "name": "assessCodeToIntent",
+      "filePath": "assess/gap-engine.ts",
+      "lineRange": [
+        177,
+        216
+      ],
+      "summary": "function assessCodeToIntent (40 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-004"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:assess/gap-engine.ts:assessBaseline",
+      "type": "function",
+      "name": "assessBaseline",
+      "filePath": "assess/gap-engine.ts",
+      "lineRange": [
+        219,
+        255
+      ],
+      "summary": "function assessBaseline (37 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-005"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "file:assess/missing-code-proof.ts",
       "type": "file",
-      "name": "handler.ts",
-      "filePath": "src/webhooks/handler.ts",
-      "summary": "Dynamic webhook dispatcher (handlers resolved at runtime).",
-      "tags": ["webhooks"],
-      "complexity": "complex",
+      "name": "missing-code-proof.ts",
+      "filePath": "assess/missing-code-proof.ts",
+      "summary": "TypeScript file, 62 lines, 2 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "unowned",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/missing-code-proof.ts:computeMissingCodeProof",
+      "type": "function",
+      "name": "computeMissingCodeProof",
+      "filePath": "assess/missing-code-proof.ts",
+      "lineRange": [
+        22,
+        49
+      ],
+      "summary": "function computeMissingCodeProof (28 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "overclaimed",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/missing-code-proof.ts:absenceWording",
+      "type": "function",
+      "name": "absenceWording",
+      "filePath": "assess/missing-code-proof.ts",
+      "lineRange": [
+        52,
+        61
+      ],
+      "summary": "function absenceWording (10 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-006"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "file:assess/severity.ts",
+      "type": "file",
+      "name": "severity.ts",
+      "filePath": "assess/severity.ts",
+      "summary": "TypeScript file, 111 lines, 5 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/severity.ts:maxSeverity",
+      "type": "function",
+      "name": "maxSeverity",
+      "filePath": "assess/severity.ts",
+      "lineRange": [
+        16,
+        18
+      ],
+      "summary": "function maxSeverity (3 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/severity.ts:worstSeverity",
+      "type": "function",
+      "name": "worstSeverity",
+      "filePath": "assess/severity.ts",
+      "lineRange": [
+        20,
+        23
+      ],
+      "summary": "function worstSeverity (4 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/severity.ts:cap",
+      "type": "function",
+      "name": "cap",
+      "filePath": "assess/severity.ts",
+      "lineRange": [
+        26,
+        30
+      ],
+      "summary": "function cap (5 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/severity.ts:resolveSeverity",
+      "type": "function",
+      "name": "resolveSeverity",
+      "filePath": "assess/severity.ts",
+      "lineRange": [
+        56,
+        100
+      ],
+      "summary": "function resolveSeverity (45 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "overclaimed",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/severity.ts:headlineTrust",
+      "type": "function",
+      "name": "headlineTrust",
+      "filePath": "assess/severity.ts",
+      "lineRange": [
+        103,
+        110
+      ],
+      "summary": "function headlineTrust (8 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-007"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "file:fact-layer/fingerprint.ts",
+      "type": "file",
+      "name": "fingerprint.ts",
+      "filePath": "fact-layer/fingerprint.ts",
+      "summary": "TypeScript file, 63 lines, 5 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "unowned",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/fingerprint.ts:spanSha256",
+      "type": "function",
+      "name": "spanSha256",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        11,
+        13
+      ],
+      "summary": "function spanSha256 (3 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/fingerprint.ts:normalizeSource",
+      "type": "function",
+      "name": "normalizeSource",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        21,
+        27
+      ],
+      "summary": "function normalizeSource (7 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/fingerprint.ts:normalizedFingerprint",
+      "type": "function",
+      "name": "normalizedFingerprint",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        31,
+        33
+      ],
+      "summary": "function normalizedFingerprint (3 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/fingerprint.ts:bindSpan",
+      "type": "function",
+      "name": "bindSpan",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        35,
+        46
+      ],
+      "summary": "function bindSpan (12 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-008"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:fact-layer/fingerprint.ts:reconcileSpan",
+      "type": "function",
+      "name": "reconcileSpan",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        54,
+        62
+      ],
+      "summary": "function reconcileSpan (9 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-009"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "file:fact-layer/index-builder.ts",
+      "type": "file",
+      "name": "index-builder.ts",
+      "filePath": "fact-layer/index-builder.ts",
+      "summary": "TypeScript file, 84 lines, 4 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/index-builder.ts:deriveOwnership",
+      "type": "function",
+      "name": "deriveOwnership",
+      "filePath": "fact-layer/index-builder.ts",
+      "lineRange": [
+        28,
+        46
+      ],
+      "summary": "function deriveOwnership (19 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-010"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:fact-layer/index-builder.ts:toGraphNode",
+      "type": "function",
+      "name": "toGraphNode",
+      "filePath": "fact-layer/index-builder.ts",
+      "lineRange": [
+        48,
+        59
+      ],
+      "summary": "function toGraphNode (12 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-011"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:fact-layer/index-builder.ts:toGraphEdge",
+      "type": "function",
+      "name": "toGraphEdge",
+      "filePath": "fact-layer/index-builder.ts",
+      "lineRange": [
+        61,
+        71
+      ],
+      "summary": "function toGraphEdge (11 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-012"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:fact-layer/index-builder.ts:buildFactLayer",
+      "type": "function",
+      "name": "buildFactLayer",
+      "filePath": "fact-layer/index-builder.ts",
+      "lineRange": [
+        78,
+        83
+      ],
+      "summary": "function buildFactLayer (6 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "file:fact-layer/scan.ts",
+      "type": "file",
+      "name": "scan.ts",
+      "filePath": "fact-layer/scan.ts",
+      "summary": "TypeScript file, 81 lines, 4 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/scan.ts:isExcluded",
+      "type": "function",
+      "name": "isExcluded",
+      "filePath": "fact-layer/scan.ts",
+      "lineRange": [
+        35,
+        40
+      ],
+      "summary": "function isExcluded (6 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/scan.ts:languageOf",
+      "type": "function",
+      "name": "languageOf",
+      "filePath": "fact-layer/scan.ts",
+      "lineRange": [
+        48,
+        51
+      ],
+      "summary": "function languageOf (4 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/scan.ts:partitionAreas",
+      "type": "function",
+      "name": "partitionAreas",
+      "filePath": "fact-layer/scan.ts",
+      "lineRange": [
+        58,
+        70
+      ],
+      "summary": "function partitionAreas (13 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-013"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:fact-layer/scan.ts:buildScanResult",
+      "type": "function",
+      "name": "buildScanResult",
+      "filePath": "fact-layer/scan.ts",
+      "lineRange": [
+        72,
+        80
+      ],
+      "summary": "function buildScanResult (9 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-014"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "file:index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "index.ts",
+      "summary": "TypeScript file, 34 lines, 0 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "unowned",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "file:intent/intent-spec.ts",
+      "type": "file",
+      "name": "intent-spec.ts",
+      "filePath": "intent/intent-spec.ts",
+      "summary": "TypeScript file, 101 lines, 3 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "unowned",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:intent/intent-spec.ts:hashIntentSpec",
+      "type": "function",
+      "name": "hashIntentSpec",
+      "filePath": "intent/intent-spec.ts",
+      "lineRange": [
+        34,
+        49
+      ],
+      "summary": "function hashIntentSpec (16 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-015"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:intent/intent-spec.ts:intentNodes",
+      "type": "function",
+      "name": "intentNodes",
+      "filePath": "intent/intent-spec.ts",
+      "lineRange": [
+        52,
+        81
+      ],
+      "summary": "function intentNodes (30 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-016"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:intent/intent-spec.ts:toExpectations",
+      "type": "function",
+      "name": "toExpectations",
+      "filePath": "intent/intent-spec.ts",
+      "lineRange": [
+        84,
+        100
+      ],
+      "summary": "function toExpectations (17 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-017"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "file:overlay/assemble.ts",
+      "type": "file",
+      "name": "assemble.ts",
+      "filePath": "overlay/assemble.ts",
+      "summary": "TypeScript file, 141 lines, 3 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "unowned",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:overlay/assemble.ts:readinessFor",
+      "type": "function",
+      "name": "readinessFor",
+      "filePath": "overlay/assemble.ts",
+      "lineRange": [
+        41,
+        46
+      ],
+      "summary": "function readinessFor (6 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:overlay/assemble.ts:assembleGraph",
+      "type": "function",
+      "name": "assembleGraph",
+      "filePath": "overlay/assemble.ts",
+      "lineRange": [
+        48,
+        122
+      ],
+      "summary": "function assembleGraph (75 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-018"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:overlay/assemble.ts:summarize",
+      "type": "function",
+      "name": "summarize",
+      "filePath": "overlay/assemble.ts",
+      "lineRange": [
+        124,
+        140
+      ],
+      "summary": "function summarize (17 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "file:overlay/validate.ts",
+      "type": "file",
+      "name": "validate.ts",
+      "filePath": "overlay/validate.ts",
+      "summary": "TypeScript file, 92 lines, 4 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "unowned",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:overlay/validate.ts:validateAssessmentGraph",
+      "type": "function",
+      "name": "validateAssessmentGraph",
+      "filePath": "overlay/validate.ts",
+      "lineRange": [
+        15,
+        64
+      ],
+      "summary": "function validateAssessmentGraph (50 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "moderate",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [
+          "A-019"
+        ],
+        "readiness": "partial",
+        "worstSeverity": "P2",
+        "trust": "verified"
+      }
+    },
+    {
+      "id": "function:overlay/validate.ts:knownEndpoint",
+      "type": "function",
+      "name": "knownEndpoint",
+      "filePath": "overlay/validate.ts",
+      "lineRange": [
+        22,
+        24
+      ],
+      "summary": "function knownEndpoint (3 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:overlay/validate.ts:honestyChecks",
+      "type": "function",
+      "name": "honestyChecks",
+      "filePath": "overlay/validate.ts",
+      "lineRange": [
+        66,
+        87
+      ],
+      "summary": "function honestyChecks (22 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:overlay/validate.ts:hasErrors",
+      "type": "function",
+      "name": "hasErrors",
+      "filePath": "overlay/validate.ts",
+      "lineRange": [
+        89,
+        91
+      ],
+      "summary": "function hasErrors (3 lines, exported)",
+      "tags": [
+        "exported"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "file:schema.ts",
+      "type": "file",
+      "name": "schema.ts",
+      "filePath": "schema.ts",
+      "summary": "TypeScript file, 184 lines, 0 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "unowned",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "file:types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "types.ts",
+      "summary": "TypeScript file, 258 lines, 0 symbol(s)",
+      "tags": [],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:overlay/reconcile.ts:reconcilePriorRun",
+      "type": "concept",
+      "name": "reconcilePriorRun",
+      "summary": "Expected by confirmed intent, not found in the index",
+      "tags": [
+        "expected-absent"
+      ],
+      "complexity": "simple",
       "assessment": {
         "coverageStatus": "not_assessed",
-        "ownership": "infrastructure",
-        "findingIds": [],
-        "readiness": "unknown",
-        "worstSeverity": null,
-        "notAssessedReason": "handlers resolved dynamically; static index coverage insufficient to assess behavior"
+        "ownership": "unowned",
+        "findingIds": [
+          "A-001"
+        ],
+        "readiness": "blocked",
+        "worstSeverity": "P2",
+        "trust": "inferred",
+        "notAssessedReason": "expected by confirmed intent but no implementing path found in the index"
       }
     }
   ],
   "edges": [
     {
-      "id": "edge:contains:module:src/payments->file:src/payments/charge.ts",
-      "source": "module:src/payments",
-      "target": "file:src/payments/charge.ts",
+      "id": "edge:contains:file:assess/coverage.ts->function:assess/coverage.ts:nodeCoverage",
+      "source": "file:assess/coverage.ts",
+      "target": "function:assess/coverage.ts:nodeCoverage",
       "type": "contains",
       "direction": "forward",
       "weight": 0.8,
-      "evidence": { "fact": "charge.ts is declared under src/payments" }
+      "evidence": {
+        "fact": "assess/coverage.ts:24 declares nodeCoverage"
+      }
     },
     {
-      "id": "edge:contains:file:src/payments/charge.ts->function:src/payments/charge.ts:charge",
-      "source": "file:src/payments/charge.ts",
-      "target": "function:src/payments/charge.ts:charge",
+      "id": "edge:contains:file:assess/coverage.ts->function:assess/coverage.ts:areaCoverage",
+      "source": "file:assess/coverage.ts",
+      "target": "function:assess/coverage.ts:areaCoverage",
       "type": "contains",
       "direction": "forward",
       "weight": 0.8,
-      "evidence": { "fact": "charge() defined at charge.ts:40-78" }
+      "evidence": {
+        "fact": "assess/coverage.ts:29 declares areaCoverage"
+      }
     },
     {
-      "id": "edge:contains:module:src/payments->function:src/payments/discount.ts:applyDiscount",
-      "source": "module:src/payments",
-      "target": "function:src/payments/discount.ts:applyDiscount",
+      "id": "edge:contains:file:assess/coverage.ts->function:assess/coverage.ts:buildCoverageManifest",
+      "source": "file:assess/coverage.ts",
+      "target": "function:assess/coverage.ts:buildCoverageManifest",
       "type": "contains",
       "direction": "forward",
       "weight": 0.8,
-      "evidence": { "fact": "applyDiscount() defined under src/payments" }
+      "evidence": {
+        "fact": "assess/coverage.ts:45 declares buildCoverageManifest"
+      }
     },
     {
-      "id": "edge:owns:capability:payments->module:src/payments",
-      "source": "capability:payments",
-      "target": "module:src/payments",
-      "type": "owns",
+      "id": "edge:contains:file:assess/coverage.ts->function:assess/coverage.ts:isFullyCovered",
+      "source": "file:assess/coverage.ts",
+      "target": "function:assess/coverage.ts:isFullyCovered",
+      "type": "contains",
       "direction": "forward",
       "weight": 0.8,
-      "evidence": { "fact": "confirmed intent maps Payments capability to src/payments" }
+      "evidence": {
+        "fact": "assess/coverage.ts:96 declares isFullyCovered"
+      }
     },
     {
-      "id": "edge:realizes:capability:payments->intent:payments.charge-idempotency",
-      "source": "capability:payments",
-      "target": "intent:payments.charge-idempotency",
-      "type": "realizes",
+      "id": "edge:contains:file:assess/gap-engine.ts->function:assess/gap-engine.ts:resetFindingIds",
+      "source": "file:assess/gap-engine.ts",
+      "target": "function:assess/gap-engine.ts:resetFindingIds",
+      "type": "contains",
       "direction": "forward",
-      "weight": 0.8
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts:56 declares resetFindingIds"
+      }
     },
     {
-      "id": "edge:realizes:capability:payments->intent:payments.refund",
-      "source": "capability:payments",
-      "target": "intent:payments.refund",
-      "type": "realizes",
+      "id": "edge:contains:file:assess/gap-engine.ts->function:assess/gap-engine.ts:nextId",
+      "source": "file:assess/gap-engine.ts",
+      "target": "function:assess/gap-engine.ts:nextId",
+      "type": "contains",
       "direction": "forward",
-      "weight": 0.8
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts:59 declares nextId"
+      }
     },
     {
-      "id": "gap:intent_to_code:intent:payments.charge-idempotency->function:src/payments/charge.ts:charge",
-      "source": "intent:payments.charge-idempotency",
-      "target": "function:src/payments/charge.ts:charge",
+      "id": "edge:contains:file:assess/gap-engine.ts->function:assess/gap-engine.ts:edge",
+      "source": "file:assess/gap-engine.ts",
+      "target": "function:assess/gap-engine.ts:edge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts:64 declares edge"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/gap-engine.ts->function:assess/gap-engine.ts:assessIntentToCode",
+      "source": "file:assess/gap-engine.ts",
+      "target": "function:assess/gap-engine.ts:assessIntentToCode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts:91 declares assessIntentToCode"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/gap-engine.ts->function:assess/gap-engine.ts:assessCodeToIntent",
+      "source": "file:assess/gap-engine.ts",
+      "target": "function:assess/gap-engine.ts:assessCodeToIntent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts:177 declares assessCodeToIntent"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/gap-engine.ts->function:assess/gap-engine.ts:assessBaseline",
+      "source": "file:assess/gap-engine.ts",
+      "target": "function:assess/gap-engine.ts:assessBaseline",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts:219 declares assessBaseline"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/missing-code-proof.ts->function:assess/missing-code-proof.ts:computeMissingCodeProof",
+      "source": "file:assess/missing-code-proof.ts",
+      "target": "function:assess/missing-code-proof.ts:computeMissingCodeProof",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/missing-code-proof.ts:22 declares computeMissingCodeProof"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/missing-code-proof.ts->function:assess/missing-code-proof.ts:absenceWording",
+      "source": "file:assess/missing-code-proof.ts",
+      "target": "function:assess/missing-code-proof.ts:absenceWording",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/missing-code-proof.ts:52 declares absenceWording"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/severity.ts->function:assess/severity.ts:maxSeverity",
+      "source": "file:assess/severity.ts",
+      "target": "function:assess/severity.ts:maxSeverity",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/severity.ts:16 declares maxSeverity"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/severity.ts->function:assess/severity.ts:worstSeverity",
+      "source": "file:assess/severity.ts",
+      "target": "function:assess/severity.ts:worstSeverity",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/severity.ts:20 declares worstSeverity"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/severity.ts->function:assess/severity.ts:cap",
+      "source": "file:assess/severity.ts",
+      "target": "function:assess/severity.ts:cap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/severity.ts:26 declares cap"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/severity.ts->function:assess/severity.ts:resolveSeverity",
+      "source": "file:assess/severity.ts",
+      "target": "function:assess/severity.ts:resolveSeverity",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/severity.ts:56 declares resolveSeverity"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/severity.ts->function:assess/severity.ts:headlineTrust",
+      "source": "file:assess/severity.ts",
+      "target": "function:assess/severity.ts:headlineTrust",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/severity.ts:103 declares headlineTrust"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:spanSha256",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:spanSha256",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:11 declares spanSha256"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:normalizeSource",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:normalizeSource",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:21 declares normalizeSource"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:normalizedFingerprint",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:normalizedFingerprint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:31 declares normalizedFingerprint"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:bindSpan",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:bindSpan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:35 declares bindSpan"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:reconcileSpan",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:reconcileSpan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:54 declares reconcileSpan"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/index-builder.ts->function:fact-layer/index-builder.ts:deriveOwnership",
+      "source": "file:fact-layer/index-builder.ts",
+      "target": "function:fact-layer/index-builder.ts:deriveOwnership",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:28 declares deriveOwnership"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/index-builder.ts->function:fact-layer/index-builder.ts:toGraphNode",
+      "source": "file:fact-layer/index-builder.ts",
+      "target": "function:fact-layer/index-builder.ts:toGraphNode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:48 declares toGraphNode"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/index-builder.ts->function:fact-layer/index-builder.ts:toGraphEdge",
+      "source": "file:fact-layer/index-builder.ts",
+      "target": "function:fact-layer/index-builder.ts:toGraphEdge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:61 declares toGraphEdge"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/index-builder.ts->function:fact-layer/index-builder.ts:buildFactLayer",
+      "source": "file:fact-layer/index-builder.ts",
+      "target": "function:fact-layer/index-builder.ts:buildFactLayer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:78 declares buildFactLayer"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/scan.ts->function:fact-layer/scan.ts:isExcluded",
+      "source": "file:fact-layer/scan.ts",
+      "target": "function:fact-layer/scan.ts:isExcluded",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/scan.ts:35 declares isExcluded"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/scan.ts->function:fact-layer/scan.ts:languageOf",
+      "source": "file:fact-layer/scan.ts",
+      "target": "function:fact-layer/scan.ts:languageOf",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/scan.ts:48 declares languageOf"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/scan.ts->function:fact-layer/scan.ts:partitionAreas",
+      "source": "file:fact-layer/scan.ts",
+      "target": "function:fact-layer/scan.ts:partitionAreas",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/scan.ts:58 declares partitionAreas"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/scan.ts->function:fact-layer/scan.ts:buildScanResult",
+      "source": "file:fact-layer/scan.ts",
+      "target": "function:fact-layer/scan.ts:buildScanResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/scan.ts:72 declares buildScanResult"
+      }
+    },
+    {
+      "id": "edge:contains:file:intent/intent-spec.ts->function:intent/intent-spec.ts:hashIntentSpec",
+      "source": "file:intent/intent-spec.ts",
+      "target": "function:intent/intent-spec.ts:hashIntentSpec",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "intent/intent-spec.ts:34 declares hashIntentSpec"
+      }
+    },
+    {
+      "id": "edge:contains:file:intent/intent-spec.ts->function:intent/intent-spec.ts:intentNodes",
+      "source": "file:intent/intent-spec.ts",
+      "target": "function:intent/intent-spec.ts:intentNodes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "intent/intent-spec.ts:52 declares intentNodes"
+      }
+    },
+    {
+      "id": "edge:contains:file:intent/intent-spec.ts->function:intent/intent-spec.ts:toExpectations",
+      "source": "file:intent/intent-spec.ts",
+      "target": "function:intent/intent-spec.ts:toExpectations",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "intent/intent-spec.ts:84 declares toExpectations"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/assemble.ts->function:overlay/assemble.ts:readinessFor",
+      "source": "file:overlay/assemble.ts",
+      "target": "function:overlay/assemble.ts:readinessFor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts:41 declares readinessFor"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/assemble.ts->function:overlay/assemble.ts:assembleGraph",
+      "source": "file:overlay/assemble.ts",
+      "target": "function:overlay/assemble.ts:assembleGraph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts:48 declares assembleGraph"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/assemble.ts->function:overlay/assemble.ts:summarize",
+      "source": "file:overlay/assemble.ts",
+      "target": "function:overlay/assemble.ts:summarize",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts:124 declares summarize"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/validate.ts->function:overlay/validate.ts:validateAssessmentGraph",
+      "source": "file:overlay/validate.ts",
+      "target": "function:overlay/validate.ts:validateAssessmentGraph",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/validate.ts:15 declares validateAssessmentGraph"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/validate.ts->function:overlay/validate.ts:knownEndpoint",
+      "source": "file:overlay/validate.ts",
+      "target": "function:overlay/validate.ts:knownEndpoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/validate.ts:22 declares knownEndpoint"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/validate.ts->function:overlay/validate.ts:honestyChecks",
+      "source": "file:overlay/validate.ts",
+      "target": "function:overlay/validate.ts:honestyChecks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/validate.ts:66 declares honestyChecks"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/validate.ts->function:overlay/validate.ts:hasErrors",
+      "source": "file:overlay/validate.ts",
+      "target": "function:overlay/validate.ts:hasErrors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/validate.ts:89 declares hasErrors"
+      }
+    },
+    {
+      "id": "edge:imports:file:assess/coverage.ts->file:assess/severity.ts",
+      "source": "file:assess/coverage.ts",
+      "target": "file:assess/severity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/coverage.ts imports ./severity.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:assess/gap-engine.ts->file:assess/severity.ts",
+      "source": "file:assess/gap-engine.ts",
+      "target": "file:assess/severity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts imports ./severity.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:assess/missing-code-proof.ts->file:types.ts",
+      "source": "file:assess/missing-code-proof.ts",
+      "target": "file:types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/missing-code-proof.ts imports ../types.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:fact-layer/fingerprint.ts->file:types.ts",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "file:types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts imports ../types.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:fact-layer/index-builder.ts->file:types.ts",
+      "source": "file:fact-layer/index-builder.ts",
+      "target": "file:types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts imports ../types.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:intent/intent-spec.ts->file:types.ts",
+      "source": "file:intent/intent-spec.ts",
+      "target": "file:types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "intent/intent-spec.ts imports ../types.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:intent/intent-spec.ts->file:assess/gap-engine.ts",
+      "source": "file:intent/intent-spec.ts",
+      "target": "file:assess/gap-engine.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "intent/intent-spec.ts imports ../assess/gap-engine.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:overlay/assemble.ts->file:fact-layer/scan.ts",
+      "source": "file:overlay/assemble.ts",
+      "target": "file:fact-layer/scan.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts imports ../fact-layer/scan.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:overlay/assemble.ts->file:fact-layer/index-builder.ts",
+      "source": "file:overlay/assemble.ts",
+      "target": "file:fact-layer/index-builder.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts imports ../fact-layer/index-builder.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:overlay/assemble.ts->file:assess/coverage.ts",
+      "source": "file:overlay/assemble.ts",
+      "target": "file:assess/coverage.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts imports ../assess/coverage.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:overlay/assemble.ts->file:assess/severity.ts",
+      "source": "file:overlay/assemble.ts",
+      "target": "file:assess/severity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts imports ../assess/severity.js"
+      }
+    },
+    {
+      "id": "edge:imports:file:overlay/validate.ts->file:types.ts",
+      "source": "file:overlay/validate.ts",
+      "target": "file:types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/validate.ts imports ../types.js"
+      }
+    },
+    {
+      "id": "gap:intent_to_code:intent:honesty-gate.cap-severity->function:assess/severity.ts:resolveSeverity",
+      "source": "intent:honesty-gate.cap-severity",
+      "target": "function:assess/severity.ts:resolveSeverity",
+      "type": "intent_to_code",
+      "direction": "forward",
+      "weight": 0.3,
+      "gap": {
+        "direction": "intent_to_code",
+        "status": "satisfied"
+      },
+      "evidence": {
+        "fact": "implementing path present in index"
+      }
+    },
+    {
+      "id": "gap:intent_to_code:intent:honesty-gate.prove-absence->function:assess/missing-code-proof.ts:computeMissingCodeProof",
+      "source": "intent:honesty-gate.prove-absence",
+      "target": "function:assess/missing-code-proof.ts:computeMissingCodeProof",
+      "type": "intent_to_code",
+      "direction": "forward",
+      "weight": 0.3,
+      "gap": {
+        "direction": "intent_to_code",
+        "status": "satisfied"
+      },
+      "evidence": {
+        "fact": "implementing path present in index"
+      }
+    },
+    {
+      "id": "gap:intent_to_code:intent:coverage-manifest.account-every-node->function:assess/coverage.ts:buildCoverageManifest",
+      "source": "intent:coverage-manifest.account-every-node",
+      "target": "function:assess/coverage.ts:buildCoverageManifest",
+      "type": "intent_to_code",
+      "direction": "forward",
+      "weight": 0.3,
+      "gap": {
+        "direction": "intent_to_code",
+        "status": "satisfied"
+      },
+      "evidence": {
+        "fact": "implementing path present in index"
+      }
+    },
+    {
+      "id": "gap:intent_to_code:intent:coverage-manifest.reconcile-spans->function:overlay/reconcile.ts:reconcilePriorRun",
+      "source": "intent:coverage-manifest.reconcile-spans",
+      "target": "function:overlay/reconcile.ts:reconcilePriorRun",
       "type": "intent_to_code",
       "direction": "forward",
       "weight": 0.9,
-      "gap": { "direction": "intent_to_code", "status": "misaligned", "findingId": "A-001" },
-      "evidence": { "fact": "idempotency key persisted after balance mutation" }
+      "gap": {
+        "direction": "intent_to_code",
+        "status": "missing",
+        "findingId": "A-001"
+      },
+      "evidence": {
+        "fact": "A-001"
+      }
     },
     {
-      "id": "gap:intent_to_code:intent:payments.refund->module:src/payments",
-      "source": "intent:payments.refund",
-      "target": "module:src/payments",
-      "type": "intent_to_code",
-      "direction": "forward",
-      "weight": 0.9,
-      "gap": { "direction": "intent_to_code", "status": "missing", "findingId": "A-002" },
-      "evidence": { "fact": "no refund symbol or route found in index" }
-    },
-    {
-      "id": "gap:code_to_intent:function:src/payments/discount.ts:applyDiscount->intent:UNCONFIRMED",
-      "source": "function:src/payments/discount.ts:applyDiscount",
+      "id": "gap:code_to_intent:function:assess/coverage.ts:areaCoverage->intent:UNCONFIRMED",
+      "source": "function:assess/coverage.ts:areaCoverage",
       "target": "intent:UNCONFIRMED",
       "type": "code_to_intent",
       "direction": "forward",
       "weight": 0.9,
-      "gap": { "direction": "code_to_intent", "status": "unexplained", "findingId": "A-003" },
-      "evidence": { "fact": "discount logic on checkout path with no confirmed intent" }
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-002"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
     },
     {
-      "id": "gap:baseline_to_code:baseline->file:src/payments/charge.ts",
-      "source": "baseline",
-      "target": "file:src/payments/charge.ts",
-      "type": "baseline_to_code",
+      "id": "gap:code_to_intent:function:assess/coverage.ts:buildCoverageManifest->capability:coverage-manifest",
+      "source": "function:assess/coverage.ts:buildCoverageManifest",
+      "target": "capability:coverage-manifest",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.3,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "justified"
+      },
+      "evidence": {
+        "fact": "maps to confirmed capability"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:assess/gap-engine.ts:assessIntentToCode->intent:UNCONFIRMED",
+      "source": "function:assess/gap-engine.ts:assessIntentToCode",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
       "direction": "forward",
       "weight": 0.9,
-      "gap": { "direction": "baseline_to_code", "status": "violation", "findingId": "C-001" },
-      "evidence": { "fact": "await precedes balance mutation (race window)" }
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-003"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:assess/gap-engine.ts:assessCodeToIntent->intent:UNCONFIRMED",
+      "source": "function:assess/gap-engine.ts:assessCodeToIntent",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-004"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:assess/gap-engine.ts:assessBaseline->intent:UNCONFIRMED",
+      "source": "function:assess/gap-engine.ts:assessBaseline",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-005"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:assess/missing-code-proof.ts:computeMissingCodeProof->capability:honesty-gate",
+      "source": "function:assess/missing-code-proof.ts:computeMissingCodeProof",
+      "target": "capability:honesty-gate",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.3,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "justified"
+      },
+      "evidence": {
+        "fact": "maps to confirmed capability"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:assess/missing-code-proof.ts:absenceWording->intent:UNCONFIRMED",
+      "source": "function:assess/missing-code-proof.ts:absenceWording",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-006"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:assess/severity.ts:resolveSeverity->capability:honesty-gate",
+      "source": "function:assess/severity.ts:resolveSeverity",
+      "target": "capability:honesty-gate",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.3,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "justified"
+      },
+      "evidence": {
+        "fact": "maps to confirmed capability"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:assess/severity.ts:headlineTrust->intent:UNCONFIRMED",
+      "source": "function:assess/severity.ts:headlineTrust",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-007"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:fact-layer/fingerprint.ts:bindSpan->intent:UNCONFIRMED",
+      "source": "function:fact-layer/fingerprint.ts:bindSpan",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-008"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:fact-layer/fingerprint.ts:reconcileSpan->intent:UNCONFIRMED",
+      "source": "function:fact-layer/fingerprint.ts:reconcileSpan",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-009"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:fact-layer/index-builder.ts:deriveOwnership->intent:UNCONFIRMED",
+      "source": "function:fact-layer/index-builder.ts:deriveOwnership",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-010"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:fact-layer/index-builder.ts:toGraphNode->intent:UNCONFIRMED",
+      "source": "function:fact-layer/index-builder.ts:toGraphNode",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-011"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:fact-layer/index-builder.ts:toGraphEdge->intent:UNCONFIRMED",
+      "source": "function:fact-layer/index-builder.ts:toGraphEdge",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-012"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:fact-layer/scan.ts:partitionAreas->intent:UNCONFIRMED",
+      "source": "function:fact-layer/scan.ts:partitionAreas",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-013"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:fact-layer/scan.ts:buildScanResult->intent:UNCONFIRMED",
+      "source": "function:fact-layer/scan.ts:buildScanResult",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-014"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:intent/intent-spec.ts:hashIntentSpec->intent:UNCONFIRMED",
+      "source": "function:intent/intent-spec.ts:hashIntentSpec",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-015"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:intent/intent-spec.ts:intentNodes->intent:UNCONFIRMED",
+      "source": "function:intent/intent-spec.ts:intentNodes",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-016"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:intent/intent-spec.ts:toExpectations->intent:UNCONFIRMED",
+      "source": "function:intent/intent-spec.ts:toExpectations",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-017"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:overlay/assemble.ts:assembleGraph->intent:UNCONFIRMED",
+      "source": "function:overlay/assemble.ts:assembleGraph",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-018"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
+    },
+    {
+      "id": "gap:code_to_intent:function:overlay/validate.ts:validateAssessmentGraph->intent:UNCONFIRMED",
+      "source": "function:overlay/validate.ts:validateAssessmentGraph",
+      "target": "intent:UNCONFIRMED",
+      "type": "code_to_intent",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "code_to_intent",
+        "status": "unexplained",
+        "findingId": "A-019"
+      },
+      "evidence": {
+        "fact": "no confirmed intent"
+      }
     }
   ],
   "findings": [
     {
       "id": "A-001",
       "direction": "intent_to_code",
-      "category": "alignment.misalignment",
-      "claim": "charge() persists the idempotency key AFTER mutating the balance, so a retry can double-charge",
+      "category": "alignment.missing",
+      "claim": "Promised \"Reconcile prior verdicts across reformat-only changes\" has no implementing path found in the index",
       "evidence": {
-        "fact": "charge.ts:62 mutates balance; idempotency key written at charge.ts:71",
-        "filePath": "src/payments/charge.ts",
-        "lineRange": [62, 71],
-        "signals": ["invariant: persist idempotency key before any balance mutation", "on checkout call path"],
-        "strength": "verified"
+        "fact": "expected component function:overlay/reconcile.ts:reconcilePriorRun not present in index",
+        "strength": "inferred",
+        "signals": [
+          "invariant: a reformat (same normalized fingerprint) must reuse the prior verdict, not re-judge"
+        ]
       },
-      "intentRef": "intent:payments.charge-idempotency",
-      "severity": "P1",
-      "confidence": "HIGH",
-      "explanation": "Confirmed critical-path intent; verified evidence. Rule P0 lowered to P1 because a unique-constraint backstop on the ledger reduces (not removes) the double-charge window.",
-      "recommendation": "Persist the idempotency key in the same transaction, before the balance mutation.",
-      "targetNodeIds": ["function:src/payments/charge.ts:charge", "intent:payments.charge-idempotency"],
+      "intentRef": "intent:coverage-manifest.reconcile-spans",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "absence not_found_in_index -> <=P2",
+      "recommendation": "Implement the promised behavior or retract the claim from intent.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "scanner cannot resolve dynamic/computed/re-exported symbols"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:overlay/reconcile.ts:reconcilePriorRun",
+        "intent:coverage-manifest.reconcile-spans"
+      ],
       "binding": {
-        "assessedAtCommit": "a1b2c3d",
-        "intentSpecHash": "ispec:6f1c9e2a",
-        "generated": "2026-06-17T00:00:00.000Z",
-        "spanSha256": "sha256:placeholder-charge",
-        "normalizedFingerprint": "nfp:placeholder-charge"
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
       }
     },
     {
       "id": "A-002",
-      "direction": "intent_to_code",
-      "category": "alignment.missing",
-      "claim": "Promised refund flow has no implementing path in the available index",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "no symbol matching /refund/i and no route POST /refunds found in index",
-        "signals": ["index coverage for routes: 70%"],
-        "strength": "inferred"
+        "fact": "assess/coverage.ts:29-43 function areaCoverage",
+        "strength": "verified",
+        "filePath": "assess/coverage.ts",
+        "lineRange": [
+          29,
+          43
+        ]
       },
-      "intentRef": "intent:payments.refund",
+      "intentRef": "UNCONFIRMED",
       "severity": "P2",
       "confidence": "MED",
-      "explanation": "Absence is only not_found_in_index (route coverage 70%), so severity is capped at P2 and the claim is worded as 'not found', not 'missing'.",
-      "recommendation": "Confirm whether refunds are implemented elsewhere; if truly absent, implement or retract the intent.",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
       "missingCodeProof": {
         "result": "not_found_in_index",
-        "searchedRoots": ["src/"],
-        "excludedRoots": ["node_modules/", "dist/"],
-        "requiredRecordTypes": ["symbol", "route"],
-        "coverage": { "required": 1.0, "actual": 0.7 },
-        "lowConfidenceResidues": ["src/webhooks/handler.ts (dynamic dispatch)"],
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
         "residuesRuledIrrelevant": []
       },
-      "targetNodeIds": ["module:src/payments", "intent:payments.refund"],
+      "targetNodeIds": [
+        "function:assess/coverage.ts:areaCoverage"
+      ],
       "binding": {
-        "assessedAtCommit": "a1b2c3d",
-        "intentSpecHash": "ispec:6f1c9e2a",
-        "generated": "2026-06-17T00:00:00.000Z"
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
       }
     },
     {
       "id": "A-003",
       "direction": "code_to_intent",
       "category": "alignment.unexplained",
-      "claim": "applyDiscount() runs on the checkout path but maps to no confirmed intent",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "applyDiscount() called from charge() but absent from the confirmed intent model",
-        "filePath": "src/payments/discount.ts",
-        "lineRange": [12, 40],
-        "strength": "verified"
+        "fact": "assess/gap-engine.ts:91-174 function assessIntentToCode",
+        "strength": "verified",
+        "filePath": "assess/gap-engine.ts",
+        "lineRange": [
+          91,
+          174
+        ]
       },
       "intentRef": "UNCONFIRMED",
       "severity": "P2",
       "confidence": "MED",
-      "explanation": "Could be intentional-but-undocumented, dead code, or scope creep. Held at P2 against UNCONFIRMED intent pending owner confirmation.",
-      "recommendation": "Confirm whether discounts are intended; document the capability or remove the code.",
-      "targetNodeIds": ["function:src/payments/discount.ts:applyDiscount"],
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/gap-engine.ts:assessIntentToCode"
+      ],
       "binding": {
-        "assessedAtCommit": "a1b2c3d",
-        "intentSpecHash": "ispec:6f1c9e2a",
-        "generated": "2026-06-17T00:00:00.000Z"
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
       }
     },
     {
-      "id": "C-001",
-      "direction": "baseline_to_code",
-      "category": "correctness",
-      "claim": "await on the gateway call precedes the balance mutation without a guard, opening a race window",
+      "id": "A-004",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "charge.ts:58 awaits gateway.capture(); charge.ts:62 mutates balance with no lock",
-        "filePath": "src/payments/charge.ts",
-        "lineRange": [58, 62],
-        "strength": "verified"
+        "fact": "assess/gap-engine.ts:177-216 function assessCodeToIntent",
+        "strength": "verified",
+        "filePath": "assess/gap-engine.ts",
+        "lineRange": [
+          177,
+          216
+        ]
       },
-      "severity": "P1",
-      "confidence": "HIGH",
-      "explanation": "Security-sensitive payment path floors severity at P1; verified evidence.",
-      "recommendation": "Hold a row lock or use a single atomic transaction across capture and balance mutation.",
-      "targetNodeIds": ["file:src/payments/charge.ts"],
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/gap-engine.ts:assessCodeToIntent"
+      ],
       "binding": {
-        "assessedAtCommit": "a1b2c3d",
-        "intentSpecHash": "ispec:6f1c9e2a",
-        "generated": "2026-06-17T00:00:00.000Z"
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-005",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/gap-engine.ts:219-255 function assessBaseline",
+        "strength": "verified",
+        "filePath": "assess/gap-engine.ts",
+        "lineRange": [
+          219,
+          255
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/gap-engine.ts:assessBaseline"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-006",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/missing-code-proof.ts:52-61 function absenceWording",
+        "strength": "verified",
+        "filePath": "assess/missing-code-proof.ts",
+        "lineRange": [
+          52,
+          61
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/missing-code-proof.ts:absenceWording"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-007",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/severity.ts:103-110 function headlineTrust",
+        "strength": "verified",
+        "filePath": "assess/severity.ts",
+        "lineRange": [
+          103,
+          110
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/severity.ts:headlineTrust"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-008",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:35-46 function bindSpan",
+        "strength": "verified",
+        "filePath": "fact-layer/fingerprint.ts",
+        "lineRange": [
+          35,
+          46
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/fingerprint.ts:bindSpan"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-009",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:54-62 function reconcileSpan",
+        "strength": "verified",
+        "filePath": "fact-layer/fingerprint.ts",
+        "lineRange": [
+          54,
+          62
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/fingerprint.ts:reconcileSpan"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-010",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:28-46 function deriveOwnership",
+        "strength": "verified",
+        "filePath": "fact-layer/index-builder.ts",
+        "lineRange": [
+          28,
+          46
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/index-builder.ts:deriveOwnership"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-011",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:48-59 function toGraphNode",
+        "strength": "verified",
+        "filePath": "fact-layer/index-builder.ts",
+        "lineRange": [
+          48,
+          59
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/index-builder.ts:toGraphNode"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-012",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:61-71 function toGraphEdge",
+        "strength": "verified",
+        "filePath": "fact-layer/index-builder.ts",
+        "lineRange": [
+          61,
+          71
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/index-builder.ts:toGraphEdge"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-013",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/scan.ts:58-70 function partitionAreas",
+        "strength": "verified",
+        "filePath": "fact-layer/scan.ts",
+        "lineRange": [
+          58,
+          70
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/scan.ts:partitionAreas"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-014",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/scan.ts:72-80 function buildScanResult",
+        "strength": "verified",
+        "filePath": "fact-layer/scan.ts",
+        "lineRange": [
+          72,
+          80
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/scan.ts:buildScanResult"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-015",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "intent/intent-spec.ts:34-49 function hashIntentSpec",
+        "strength": "verified",
+        "filePath": "intent/intent-spec.ts",
+        "lineRange": [
+          34,
+          49
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:intent/intent-spec.ts:hashIntentSpec"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-016",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "intent/intent-spec.ts:52-81 function intentNodes",
+        "strength": "verified",
+        "filePath": "intent/intent-spec.ts",
+        "lineRange": [
+          52,
+          81
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:intent/intent-spec.ts:intentNodes"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-017",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "intent/intent-spec.ts:84-100 function toExpectations",
+        "strength": "verified",
+        "filePath": "intent/intent-spec.ts",
+        "lineRange": [
+          84,
+          100
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:intent/intent-spec.ts:toExpectations"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-018",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "overlay/assemble.ts:48-122 function assembleGraph",
+        "strength": "verified",
+        "filePath": "overlay/assemble.ts",
+        "lineRange": [
+          48,
+          122
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:overlay/assemble.ts:assembleGraph"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
+      }
+    },
+    {
+      "id": "A-019",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "overlay/validate.ts:15-64 function validateAssessmentGraph",
+        "strength": "verified",
+        "filePath": "overlay/validate.ts",
+        "lineRange": [
+          15,
+          64
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:overlay/validate.ts:validateAssessmentGraph"
+      ],
+      "binding": {
+        "assessedAtCommit": "7c5817d",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-19T23:35:54.687Z"
       }
     }
   ],
   "areas": [
     {
-      "id": "area:payments",
-      "name": "payments",
-      "description": "Files under src/payments/",
+      "id": "area:root",
+      "name": "(root)",
+      "description": "Files under (root)/",
       "nodeIds": [
-        "module:src/payments",
-        "file:src/payments/charge.ts",
-        "function:src/payments/charge.ts:charge",
-        "function:src/payments/discount.ts:applyDiscount"
+        "file:index.ts",
+        "file:schema.ts",
+        "file:types.ts"
       ],
       "coverageStatus": "assessed",
-      "worstSeverity": "P1"
+      "worstSeverity": null
     },
     {
-      "id": "area:webhooks",
-      "name": "webhooks",
-      "description": "Files under src/webhooks/",
-      "nodeIds": ["file:src/webhooks/handler.ts"],
-      "coverageStatus": "not_assessed",
-      "worstSeverity": null
+      "id": "area:assess",
+      "name": "assess",
+      "description": "Files under assess/",
+      "nodeIds": [
+        "file:assess/coverage.ts",
+        "function:assess/coverage.ts:nodeCoverage",
+        "function:assess/coverage.ts:areaCoverage",
+        "function:assess/coverage.ts:buildCoverageManifest",
+        "function:assess/coverage.ts:isFullyCovered",
+        "file:assess/gap-engine.ts",
+        "function:assess/gap-engine.ts:resetFindingIds",
+        "function:assess/gap-engine.ts:nextId",
+        "function:assess/gap-engine.ts:edge",
+        "function:assess/gap-engine.ts:assessIntentToCode",
+        "function:assess/gap-engine.ts:assessCodeToIntent",
+        "function:assess/gap-engine.ts:assessBaseline",
+        "file:assess/missing-code-proof.ts",
+        "function:assess/missing-code-proof.ts:computeMissingCodeProof",
+        "function:assess/missing-code-proof.ts:absenceWording",
+        "file:assess/severity.ts",
+        "function:assess/severity.ts:maxSeverity",
+        "function:assess/severity.ts:worstSeverity",
+        "function:assess/severity.ts:cap",
+        "function:assess/severity.ts:resolveSeverity",
+        "function:assess/severity.ts:headlineTrust"
+      ],
+      "coverageStatus": "assessed",
+      "worstSeverity": "P2"
+    },
+    {
+      "id": "area:fact-layer",
+      "name": "fact-layer",
+      "description": "Files under fact-layer/",
+      "nodeIds": [
+        "file:fact-layer/fingerprint.ts",
+        "function:fact-layer/fingerprint.ts:spanSha256",
+        "function:fact-layer/fingerprint.ts:normalizeSource",
+        "function:fact-layer/fingerprint.ts:normalizedFingerprint",
+        "function:fact-layer/fingerprint.ts:bindSpan",
+        "function:fact-layer/fingerprint.ts:reconcileSpan",
+        "file:fact-layer/index-builder.ts",
+        "function:fact-layer/index-builder.ts:deriveOwnership",
+        "function:fact-layer/index-builder.ts:toGraphNode",
+        "function:fact-layer/index-builder.ts:toGraphEdge",
+        "function:fact-layer/index-builder.ts:buildFactLayer",
+        "file:fact-layer/scan.ts",
+        "function:fact-layer/scan.ts:isExcluded",
+        "function:fact-layer/scan.ts:languageOf",
+        "function:fact-layer/scan.ts:partitionAreas",
+        "function:fact-layer/scan.ts:buildScanResult"
+      ],
+      "coverageStatus": "assessed",
+      "worstSeverity": "P2"
+    },
+    {
+      "id": "area:intent",
+      "name": "intent",
+      "description": "Files under intent/",
+      "nodeIds": [
+        "file:intent/intent-spec.ts",
+        "function:intent/intent-spec.ts:hashIntentSpec",
+        "function:intent/intent-spec.ts:intentNodes",
+        "function:intent/intent-spec.ts:toExpectations"
+      ],
+      "coverageStatus": "assessed",
+      "worstSeverity": "P2"
+    },
+    {
+      "id": "area:overlay",
+      "name": "overlay",
+      "description": "Files under overlay/",
+      "nodeIds": [
+        "file:overlay/assemble.ts",
+        "function:overlay/assemble.ts:readinessFor",
+        "function:overlay/assemble.ts:assembleGraph",
+        "function:overlay/assemble.ts:summarize",
+        "file:overlay/validate.ts",
+        "function:overlay/validate.ts:validateAssessmentGraph",
+        "function:overlay/validate.ts:knownEndpoint",
+        "function:overlay/validate.ts:honestyChecks",
+        "function:overlay/validate.ts:hasErrors"
+      ],
+      "coverageStatus": "assessed",
+      "worstSeverity": "P2"
     }
   ],
   "coverage": {
-    "totalAreas": 2,
-    "totalNodes": 5,
+    "totalAreas": 5,
+    "totalNodes": 54,
     "byStatus": {
-      "assessed": 4,
+      "assessed": 53,
       "partial": 0,
       "not_assessed": 1,
       "coverage_insufficient": 0
@@ -373,30 +3311,28 @@
     "headlineTrust": "inferred",
     "gaps": [
       {
-        "scope": "webhooks",
+        "scope": "reconcilePriorRun",
         "status": "not_assessed",
-        "reason": "no node in this area received an assessment verdict"
-      },
-      {
-        "scope": "handler.ts",
-        "status": "not_assessed",
-        "reason": "handlers resolved dynamically; static index coverage insufficient to assess behavior"
+        "reason": "expected by confirmed intent but no implementing path found in the index"
       }
     ]
   },
   "summary": {
-    "bySeverity": { "P0": 0, "P1": 2, "P2": 2, "P3": 0 },
+    "bySeverity": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 19,
+      "P3": 0
+    },
     "byCategory": {
-      "alignment.misalignment": 1,
       "alignment.missing": 1,
-      "alignment.unexplained": 1,
-      "correctness": 1
+      "alignment.unexplained": 18
     },
     "byDirection": {
-      "intent_to_code": 2,
-      "code_to_intent": 1,
-      "baseline_to_code": 1
+      "intent_to_code": 1,
+      "code_to_intent": 18,
+      "baseline_to_code": 0
     },
-    "headline": "0 P0 / 2 P1 across 2 intent->code, 1 code->intent, 1 baseline findings (headline trust: inferred). 1 area not assessed."
+    "headline": "intent-bound: scanned 13 code files / 53 nodes; 0 P0 / 0 P1 / 19 P2 / 0 P3 (headline trust: inferred)."
   }
 }

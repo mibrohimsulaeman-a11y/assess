@@ -434,9 +434,16 @@ export function assessRepo(opts) {
   // Real coverage of the symbol index: how much of the enumerated code we parsed.
   // 0 when there is nothing to index, so an absence claim stays "coverage_insufficient".
   const indexCoverage = assessedFiles.length ? indexedFileCount / assessedFiles.length : 0;
+  const capabilityOwns = new Set();
   if (hasIntent) {
     const ownsByNode = new Map();
-    for (const cap of spec.capabilities) for (const cid of cap.ownsComponentIds || []) ownsByNode.set(cid, cap.id);
+    for (const cap of spec.capabilities) {
+      if (cap.status !== "CONFIRMED") continue;
+      for (const cid of cap.ownsComponentIds || []) {
+        ownsByNode.set(cid, cap.id);
+        capabilityOwns.add(cid);
+      }
+    }
 
     // 1: intent -> code
     for (const cap of spec.capabilities) {
@@ -479,7 +486,7 @@ export function assessRepo(opts) {
                 summary: "Expected by confirmed intent, not found in the index",
                 tags: ["expected-absent"], complexity: "simple",
                 assessment: {
-                  coverageStatus: "not_assessed", ownership: "unowned", findingIds: [findingId],
+                  coverageStatus: "not_assessed", ownership: deriveOwnership(compId, factEdges, capabilityOwns), findingIds: [findingId],
                   readiness: "blocked", worstSeverity: dec.severity, trust: "inferred",
                   notAssessedReason: "expected by confirmed intent but no implementing path found in the index",
                 },
@@ -495,16 +502,23 @@ export function assessRepo(opts) {
       const mapped = ownsByNode.get(obs.nodeId);
       if (mapped) { gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->${mapped}`, source: obs.nodeId, target: mapped, type: "code_to_intent", direction: "forward", weight: 0.3, gap: { direction: "code_to_intent", status: "justified", findingId: undefined }, evidence: { fact: "maps to confirmed capability" } }); continue; }
       if (obs.significance !== "high") continue;
+      const proof = computeMissingCodeProof({
+        searchedRoots: [path.relative(repoRoot, repoRoot) || "."],
+        excludedRoots: ["node_modules", "dist", "build"],
+        requiredRecordTypes: ["symbol"],
+        coverageActual: indexCoverage,
+        lowConfidenceResidues: ["intent spec may be incomplete or owner intent may be unconfirmed"],
+      });
       const dec = resolveSeverity({ ruleSeverity: "P2", evidenceStrength: "verified", confidence: "MED", intentUnconfirmed: true });
       const id = nextId("A");
       findings.push({
         id, direction: "code_to_intent", category: "alignment.unexplained",
-        claim: "Significant exported component has no confirmed intent that explains it",
+        claim: "Significant exported component has no confirmed intent mapping in the supplied intent spec",
         evidence: { fact: obs.evidenceFact, strength: "verified", filePath: obs.span.filePath, lineRange: obs.span.lineRange },
         intentRef: "UNCONFIRMED", severity: dec.severity, confidence: "MED",
-        explanation: "Intentional-but-undocumented, dead code, or scope creep. Confirm with the owner.",
+        explanation: "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
         recommendation: "Confirm whether this is intended; document it in the intent spec or remove it.",
-        targetNodeIds: [obs.nodeId], binding: { ...binding },
+        missingCodeProof: proof, targetNodeIds: [obs.nodeId], binding: { ...binding },
       });
       gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->intent:UNCONFIRMED`, source: obs.nodeId, target: "intent:UNCONFIRMED", type: "code_to_intent", direction: "forward", weight: 0.9, gap: { direction: "code_to_intent", status: "unexplained", findingId: id }, evidence: { fact: "no confirmed intent" } });
     }
@@ -534,7 +548,7 @@ export function assessRepo(opts) {
       ...node,
       assessment: {
         coverageStatus,
-        ownership: deriveOwnership(node.id, factEdges),
+        ownership: deriveOwnership(node.id, factEdges, capabilityOwns),
         findingIds: nf.map((f) => f.id),
         readiness: reason ? "partial" : worst === "P0" ? "blocked" : worst === "P1" ? "partial" : worst ? "partial" : "ready",
         worstSeverity: worst,
@@ -608,13 +622,17 @@ export function assessRepo(opts) {
 
 // ---------- assemble helpers ----------
 
-function deriveOwnership(nodeId, edges) {
+function deriveOwnership(nodeId, edges, capabilityOwns = new Set()) {
+  const claimed = capabilityOwns.has(nodeId);
   const inbound = edges.filter((e) => e.target === nodeId);
+  const owners = new Set(inbound.filter((e) => e.type === "owns").map((e) => e.source));
+  const isInfra = inbound.some((e) => e.type === "configures" || e.type === "routes");
+
+  if (claimed && owners.size === 0) return "overclaimed";
+  if (owners.size > 1) return "shared";
+  if (owners.size === 1) return "owned";
+  if (isInfra) return "infrastructure";
   if (inbound.length === 0) return "unowned";
-  const owners = inbound.filter((e) => e.type === "owns");
-  if (owners.length > 1) return "shared";
-  if (owners.length === 1) return "owned";
-  if (inbound.some((e) => e.type === "configures" || e.type === "routes")) return "infrastructure";
   return "hidden";
 }
 
@@ -642,6 +660,13 @@ function buildCoverageManifest(nodes, areas, findings, nodeMap) {
         reason: area.coverageStatus === "not_assessed" ? "no node in this area received a verdict"
           : area.coverageStatus === "coverage_insufficient" ? "index coverage too low to assess this area"
           : "nodes in this area are only partially assessed (e.g. baseline-only, no intent binding)" });
+    }
+  }
+  for (const n of assessable) {
+    const status = n.assessment?.coverageStatus ?? "not_assessed";
+    if (status === "not_assessed" || status === "coverage_insufficient") {
+      const reason = n.assessment?.notAssessedReason;
+      if (reason) gaps.push({ scope: n.name || n.id, status, reason });
     }
   }
   return { totalAreas: areas.length, totalNodes: assessable.length, byStatus, headlineTrust: headlineTrust(findings), gaps };

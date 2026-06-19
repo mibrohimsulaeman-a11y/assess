@@ -66,11 +66,16 @@ function validate(graph) {
   if (counted !== assessable.length) {
     err(`coverage manifest counts ${counted} but there are ${assessable.length} assessable nodes`);
   }
+  if (((bs.not_assessed || 0) > 0 || (bs.coverage_insufficient || 0) > 0) && !(graph.coverage && graph.coverage.gaps && graph.coverage.gaps.length)) {
+    err("coverage manifest has not_assessed/coverage_insufficient nodes but no coverage gaps");
+  }
 
   // 4. honesty rules
   for (const f of graph.findings || []) {
     const claimsAbsence =
-      f.category === "alignment.missing" || /no (implementing|code|path)|dead code|never called/i.test(f.claim || "");
+      f.category === "alignment.missing" ||
+      f.category === "alignment.unexplained" ||
+      /no (implementing|code|path)|dead code|never called/i.test(f.claim || "");
     if (claimsAbsence && !f.missingCodeProof) {
       err(`finding ${f.id}: claims absence without a missing-code proof`);
     }

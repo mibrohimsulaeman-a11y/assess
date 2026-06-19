@@ -104,6 +104,21 @@ const cases = [
       return g;
     },
   },
+
+  {
+    name: "unexplained-without-proof",
+    expect: "fail",
+    mutate: (g) => {
+      g.findings.push(finding({
+        direction: "code_to_intent",
+        category: "alignment.unexplained",
+        claim: "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+        severity: "P2",
+        intentRef: "UNCONFIRMED",
+      }));
+      return g;
+    },
+  },
   {
     name: "unverifiable-high-severity",
     expect: "fail",
@@ -125,6 +140,19 @@ const cases = [
     expect: "fail",
     mutate: (g) => {
       g.coverage.byStatus.assessed = 0;
+      return g;
+    },
+  },
+
+  {
+    name: "coverage-gap-missing",
+    expect: "fail",
+    mutate: (g) => {
+      g.nodes[0].assessment.coverageStatus = "not_assessed";
+      g.nodes[0].assessment.notAssessedReason = "fixture intentionally not assessed";
+      g.coverage.byStatus.assessed = 0;
+      g.coverage.byStatus.not_assessed = 1;
+      g.coverage.gaps = [];
       return g;
     },
   },

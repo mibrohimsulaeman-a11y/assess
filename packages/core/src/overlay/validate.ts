@@ -56,6 +56,9 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
   if (counted !== assessable) {
     issues.push({ level: "error", code: "COVERAGE_MISMATCH", message: `coverage manifest counts ${counted} but there are ${assessable} assessable nodes` });
   }
+  if ((graph.coverage.byStatus.not_assessed > 0 || graph.coverage.byStatus.coverage_insufficient > 0) && graph.coverage.gaps.length === 0) {
+    issues.push({ level: "error", code: "COVERAGE_GAPS_MISSING", message: "coverage manifest has not_assessed/coverage_insufficient nodes but no coverage gaps" });
+  }
 
   return issues;
 }
@@ -64,12 +67,14 @@ function honestyChecks(f: Finding): ValidationIssue[] {
   const out: ValidationIssue[] = [];
   // missing / dead-code claims require a missing-code proof
   const claimsAbsence =
-    f.category === "alignment.missing" || /no (implementing|code|path)|dead code|never called/i.test(f.claim);
+    f.category === "alignment.missing" ||
+    f.category === "alignment.unexplained" ||
+    /no (implementing|code|path)|dead code|never called/i.test(f.claim);
   if (claimsAbsence && !f.missingCodeProof) {
-    out.push({ level: "warn", code: "NO_ABSENCE_PROOF", message: `finding ${f.id} claims absence without a missing-code proof` });
+    out.push({ level: "error", code: "NO_ABSENCE_PROOF", message: `finding ${f.id} claims absence without a missing-code proof` });
   }
-  if (claimsAbsence && f.missingCodeProof && f.missingCodeProof.result !== "absent" && f.severity === "P0") {
-    out.push({ level: "error", code: "UNPROVEN_ABSENCE_P0", message: `finding ${f.id} is P0 but absence is only ${f.missingCodeProof.result}` });
+  if (claimsAbsence && f.missingCodeProof && f.missingCodeProof.result !== "absent" && (f.severity === "P0" || f.severity === "P1")) {
+    out.push({ level: "error", code: "UNPROVEN_ABSENCE_HIGH", message: `finding ${f.id} is ${f.severity} but absence is only ${f.missingCodeProof.result}` });
   }
   // evidence/severity honesty caps
   if (f.evidence.strength === "unverifiable" && (f.severity === "P0" || f.severity === "P1")) {
