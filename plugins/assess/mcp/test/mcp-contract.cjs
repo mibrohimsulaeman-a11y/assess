@@ -21,7 +21,6 @@
  */
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 
 const SERVER = path.join(__dirname, "..", "assess-server.mjs");
@@ -48,7 +47,10 @@ function check(name, cond, detail) {
 
 function runSession(requests) {
   return new Promise((resolve, reject) => {
-    const child = spawn("node", [SERVER], { stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn("node", [SERVER], {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, CLAUDE_PROJECT_DIR: REPO_ROOT },
+    });
     let out = "";
     let stderr = "";
     const timer = setTimeout(() => {
@@ -85,7 +87,9 @@ function toolPayload(resp) {
 }
 
 async function main() {
-  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "assess-mcp-"));
+  const assessmentDir = path.join(REPO_ROOT, ".assessment");
+  fs.mkdirSync(assessmentDir, { recursive: true });
+  const outDir = fs.mkdtempSync(path.join(assessmentDir, "mcp-contract-"));
   const graphPath = path.join(outDir, "assessment-graph.json");
 
   // One ordered session exercising the full surface. ids are matched in responses.
@@ -176,6 +180,20 @@ async function main() {
 
   const pong = byId.get(9);
   check("ping is answered", !!pong && pong.result !== undefined, JSON.stringify(pong));
+
+  const { responses: boundaryResponses } = await runSession([
+    { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "assess_repo", arguments: { repoRoot: "../../../../" } } },
+    { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "validate_graph", arguments: { graphPath: "/etc/passwd" } } },
+  ]);
+  const boundaryById = new Map(boundaryResponses.map((r) => [r.id, r]));
+  const traversalRepo = boundaryById.get(1);
+  const absoluteGraph = boundaryById.get(2);
+  check("assess_repo rejects relative traversal outside CLAUDE_PROJECT_DIR",
+    traversalRepo?.result?.isError === true && /path segments|CLAUDE_PROJECT_DIR/i.test(traversalRepo.result.content?.[0]?.text || ""),
+    JSON.stringify(traversalRepo));
+  check("validate_graph rejects absolute paths outside CLAUDE_PROJECT_DIR",
+    absoluteGraph?.result?.isError === true && /CLAUDE_PROJECT_DIR/i.test(absoluteGraph.result.content?.[0]?.text || ""),
+    JSON.stringify(absoluteGraph));
 
   fs.rmSync(outDir, { recursive: true, force: true });
 

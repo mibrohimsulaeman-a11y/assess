@@ -29,6 +29,7 @@ const require = createRequire(import.meta.url);
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const VALIDATOR = path.join(REPO_ROOT, "packages/core/scripts/validate-graph.cjs");
 const PROJECT_ROOT = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const PROJECT_ROOT_RESOLVED = fs.realpathSync(PROJECT_ROOT);
 
 const SERVER_INFO = { name: "assess", version: "2.0.0" };
 
@@ -90,12 +91,59 @@ const TOOLS = [
 
 const SEV_ORDER = ["P3", "P2", "P1", "P0"];
 
-function resolveProjectPath(inputPath) {
-  return path.isAbsolute(inputPath) ? inputPath : path.resolve(PROJECT_ROOT, inputPath);
+function isInsideProject(resolvedPath) {
+  const relative = path.relative(PROJECT_ROOT_RESOLVED, resolvedPath);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function hasParentTraversal(inputPath) {
+  return inputPath.split(/[\\/]+/).includes("..");
+}
+
+function nearestExistingPath(absPath) {
+  let current = absPath;
+  while (!fs.existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) throw new Error(`no existing ancestor for ${absPath}`);
+    current = parent;
+  }
+  return current;
+}
+
+function resolveInsideProject(inputPath, label) {
+  if (typeof inputPath !== "string" || inputPath.trim() === "") {
+    throw new Error(`${label} must be a non-empty path`);
+  }
+  const absPath = path.isAbsolute(inputPath)
+    ? path.resolve(inputPath)
+    : path.resolve(PROJECT_ROOT_RESOLVED, inputPath);
+  if (fs.existsSync(absPath)) {
+    const resolvedPath = fs.realpathSync(absPath);
+    if (!isInsideProject(resolvedPath)) {
+      throw new Error(`${label} must stay inside CLAUDE_PROJECT_DIR (${PROJECT_ROOT_RESOLVED})`);
+    }
+    return resolvedPath;
+  }
+  if (hasParentTraversal(inputPath)) {
+    throw new Error(`${label} must not contain '..' path segments`);
+  }
+
+  const existingPath = nearestExistingPath(absPath);
+  const existingResolved = fs.realpathSync(existingPath);
+  if (!isInsideProject(existingResolved)) {
+    throw new Error(`${label} must stay inside CLAUDE_PROJECT_DIR (${PROJECT_ROOT_RESOLVED})`);
+  }
+
+  const relativeTail = path.relative(existingPath, absPath);
+  const resolvedPath = relativeTail ? path.resolve(existingResolved, relativeTail) : existingResolved;
+  if (!isInsideProject(resolvedPath)) {
+    throw new Error(`${label} must stay inside CLAUDE_PROJECT_DIR (${PROJECT_ROOT_RESOLVED})`);
+  }
+  return resolvedPath;
 }
 
 function readGraph(graphPath) {
-  const abs = resolveProjectPath(graphPath);
+  const abs = resolveInsideProject(graphPath, "graphPath");
   return JSON.parse(fs.readFileSync(abs, "utf8"));
 }
 
@@ -103,9 +151,10 @@ function readGraph(graphPath) {
 
 const handlers = {
   assess_repo(args) {
-    const repoRoot = resolveProjectPath(args.repoRoot);
-    const outDir = args.outDir ? resolveProjectPath(args.outDir) : path.join(repoRoot, ".assessment");
-    const intentSpecPath = args.intentSpecPath ? resolveProjectPath(args.intentSpecPath) : undefined;
+    const repoRoot = resolveInsideProject(args.repoRoot, "repoRoot");
+    const defaultOutDir = path.join(repoRoot, ".assessment");
+    const outDir = resolveInsideProject(args.outDir || defaultOutDir, "outDir");
+    const intentSpecPath = args.intentSpecPath ? resolveInsideProject(args.intentSpecPath, "intentSpecPath") : undefined;
     const { graph, outPath, summary } = assessRepo({ repoRoot, intentSpecPath, outDir });
     return {
       summary: summary.headline,
