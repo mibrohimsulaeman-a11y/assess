@@ -1,12 +1,10 @@
-// @assess/core — public surface
+// @assess/core — typed public surface
 //
-// Fact layer (deterministic):   scan, index-builder, fingerprint
-// Intent model (should-be):     intent-spec
-// Assessment engine (judgment): gap-engine, missing-code-proof, severity, coverage
-// Overlay (graph assembly):     assemble, validate
-//
-// The pipeline (skills/assess/SKILL.md) drives these in order and writes
-// .assessment/assessment-graph.json, which the dashboard renders.
+// Executable source of truth: packages/core/runtime/engine.mjs.
+// This package exports graph contracts, schemas, validators, deterministic
+// fact-layer helpers, and typed reference utilities. The helpers under src/**
+// are not the production scanner/runtime pipeline by themselves; validate any
+// assembled graph with the zero-dependency validator before publishing it.
 
 export * from "./types.js";
 export {

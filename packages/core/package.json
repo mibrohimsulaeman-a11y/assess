@@ -2,7 +2,7 @@
   "name": "@assess/core",
   "version": "2.0.0",
   "type": "module",
-  "description": "Deterministic fact layer + assessment engine for assess. Builds the code index, binds it to confirmed intent, runs the three gap directions across every area, and assembles assessment-graph.json.",
+  "description": "Graph contracts, validators, and typed reference helpers for assess. The executable runtime pipeline is packages/core/runtime/engine.mjs.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

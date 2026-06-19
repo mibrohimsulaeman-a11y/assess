@@ -4,21 +4,19 @@ import type {
   GapDirection,
   GraphEdge,
   GraphNode,
+  MissingCodeProof,
 } from "../types.js";
 import { resolveSeverity, type SeverityInputs } from "./severity.js";
 
-// The assessment engine. It does NOT describe the codebase; it JOINS the
-// confirmed intent model to the deterministic fact layer and emits a verdict
-// per pairing. Three directions (Codebase Assessment Engine §15 / VAC):
+// Typed gap helpers. The executable source of truth is the zero-dependency
+// runtime in packages/core/runtime/engine.mjs; these helpers are typed reference
+// primitives for callers that already have observations and proof material.
+// They do not scan repositories, infer real call graphs, parse routes, or prove
+// behavioral partial/misaligned states by themselves.
 //
-//   intent_to_code : for each promised capability/process — is it implemented,
-//                    partial, misaligned, or missing?  (over-promise)
-//   code_to_intent : for each significant component — does it map to a confirmed
-//                    intent, or is it unexplained?      (under-explain / dead code)
-//   baseline_to_code: for each component — does it violate a universal baseline
-//                     (correctness/security/quality) regardless of intent?
-//
-// Every produced edge/finding is bindable and severity-capped.
+// Every produced edge/finding is bindable and severity-capped. When a caller
+// does not supply a stronger proof, fallback proofs stay explicitly bounded so
+// helper output cannot claim true absence.
 
 export interface IntentExpectation {
   intentId: string;       // intent:<cap>.<process>
@@ -82,6 +80,18 @@ function edge(
   };
 }
 
+function fallbackProof(reason: string): MissingCodeProof {
+  return {
+    result: "coverage_insufficient",
+    searchedRoots: [],
+    excludedRoots: [],
+    requiredRecordTypes: ["symbol"],
+    coverage: { required: 1, actual: 0 },
+    lowConfidenceResidues: [reason],
+    residuesRuledIrrelevant: [],
+  };
+}
+
 export interface GapEngineResult {
   findings: Finding[];
   edges: GraphEdge[];
@@ -127,13 +137,15 @@ export function assessIntentToCode(
       let findingId: string | undefined;
       if (category) {
         findingId = nextId("A");
+        const missingCodeProof = status === "missing"
+          ? fallbackProof("typed helper did not receive a measured index coverage proof")
+          : undefined;
         const decision = resolveSeverity({
           ruleSeverity,
           evidenceStrength: obs?.evidenceStrength ?? "inferred",
           confidence: obs?.confidence ?? "MED",
           securitySensitive: exp.securitySensitive,
-          // missing findings need a proof attached by the caller; until then cap at P2
-          missingCodeResult: status === "missing" ? "not_found_in_index" : undefined,
+          missingCodeResult: missingCodeProof?.result,
         });
         findings.push({
           id: findingId,
@@ -160,6 +172,7 @@ export function assessIntentToCode(
             status === "missing"
               ? "Implement the promised behavior or retract the claim from intent."
               : "Reconcile the implementation with the stated invariant.",
+          missingCodeProof,
           targetNodeIds: [compId, exp.intentId],
           binding: { assessedAtCommit: bindingCommit, intentSpecHash, generated },
         });
@@ -191,22 +204,25 @@ export function assessCodeToIntent(
     if (obs.significance !== "high") continue; // ignore trivial unmapped code
 
     const findingId = nextId("A");
+    const missingCodeProof = fallbackProof("typed helper did not receive a confirmed intent mapping proof");
     const decision = resolveSeverity({
       ruleSeverity: "P2",
       evidenceStrength: obs.evidenceStrength,
       confidence: obs.confidence,
+      intentUnconfirmed: true,
     });
     findings.push({
       id: findingId,
       direction: "code_to_intent",
       category: "alignment.unexplained",
-      claim: `Significant component has no confirmed intent that explains it`,
+      claim: "Significant component has no confirmed intent mapping in the supplied intent model",
       evidence: { fact: obs.evidenceFact, strength: obs.evidenceStrength },
       intentRef: "UNCONFIRMED",
       severity: decision.severity,
       confidence: obs.confidence,
       explanation: "Could be intentional-but-undocumented, dead code, or scope creep. Confirm with owner.",
       recommendation: "Confirm whether this is intended; document it or remove it.",
+      missingCodeProof,
       targetNodeIds: [obs.nodeId],
       binding: { assessedAtCommit: bindingCommit, intentSpecHash, generated },
     });

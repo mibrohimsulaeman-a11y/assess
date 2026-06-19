@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "kind": "assessment",
   "binding": {
-    "assessedAtCommit": "9e8f96f",
+    "assessedAtCommit": "717356b",
     "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-    "generated": "2026-06-19T23:38:48.247Z"
+    "generated": "2026-06-19T23:41:10.878Z"
   },
   "project": {
     "name": "src",
@@ -13,8 +13,8 @@
     ],
     "frameworks": [],
     "description": "intent-bound assessment",
-    "analyzedAt": "2026-06-19T23:38:48.247Z",
-    "gitCommitHash": "9e8f96f"
+    "analyzedAt": "2026-06-19T23:41:10.878Z",
+    "gitCommitHash": "717356b"
   },
   "intents": [
     {
@@ -228,7 +228,7 @@
       "type": "file",
       "name": "gap-engine.ts",
       "filePath": "assess/gap-engine.ts",
-      "summary": "TypeScript file, 256 lines, 6 symbol(s)",
+      "summary": "TypeScript file, 272 lines, 7 symbol(s)",
       "tags": [],
       "complexity": "simple",
       "assessment": {
@@ -245,8 +245,8 @@
       "name": "resetFindingIds",
       "filePath": "assess/gap-engine.ts",
       "lineRange": [
-        56,
-        58
+        54,
+        56
       ],
       "summary": "function resetFindingIds (3 lines, exported)",
       "tags": [
@@ -267,8 +267,8 @@
       "name": "nextId",
       "filePath": "assess/gap-engine.ts",
       "lineRange": [
-        59,
-        62
+        57,
+        60
       ],
       "summary": "function nextId (4 lines)",
       "tags": [
@@ -289,10 +289,32 @@
       "name": "edge",
       "filePath": "assess/gap-engine.ts",
       "lineRange": [
-        64,
-        83
+        62,
+        81
       ],
       "summary": "function edge (20 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:assess/gap-engine.ts:fallbackProof",
+      "type": "function",
+      "name": "fallbackProof",
+      "filePath": "assess/gap-engine.ts",
+      "lineRange": [
+        83,
+        93
+      ],
+      "summary": "function fallbackProof (11 lines)",
       "tags": [
         "internal"
       ],
@@ -311,10 +333,10 @@
       "name": "assessIntentToCode",
       "filePath": "assess/gap-engine.ts",
       "lineRange": [
-        91,
-        174
+        101,
+        187
       ],
-      "summary": "function assessIntentToCode (84 lines, exported)",
+      "summary": "function assessIntentToCode (87 lines, exported)",
       "tags": [
         "exported"
       ],
@@ -336,14 +358,14 @@
       "name": "assessCodeToIntent",
       "filePath": "assess/gap-engine.ts",
       "lineRange": [
-        177,
-        216
+        190,
+        232
       ],
-      "summary": "function assessCodeToIntent (40 lines, exported)",
+      "summary": "function assessCodeToIntent (43 lines, exported)",
       "tags": [
         "exported"
       ],
-      "complexity": "simple",
+      "complexity": "moderate",
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
@@ -361,8 +383,8 @@
       "name": "assessBaseline",
       "filePath": "assess/gap-engine.ts",
       "lineRange": [
-        219,
-        255
+        235,
+        271
       ],
       "summary": "function assessBaseline (37 lines, exported)",
       "tags": [
@@ -998,7 +1020,7 @@
       "type": "file",
       "name": "index.ts",
       "filePath": "index.ts",
-      "summary": "TypeScript file, 34 lines, 0 symbol(s)",
+      "summary": "TypeScript file, 32 lines, 0 symbol(s)",
       "tags": [],
       "complexity": "simple",
       "assessment": {
@@ -1399,7 +1421,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "assess/gap-engine.ts:56 declares resetFindingIds"
+        "fact": "assess/gap-engine.ts:54 declares resetFindingIds"
       }
     },
     {
@@ -1410,7 +1432,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "assess/gap-engine.ts:59 declares nextId"
+        "fact": "assess/gap-engine.ts:57 declares nextId"
       }
     },
     {
@@ -1421,7 +1443,18 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "assess/gap-engine.ts:64 declares edge"
+        "fact": "assess/gap-engine.ts:62 declares edge"
+      }
+    },
+    {
+      "id": "edge:contains:file:assess/gap-engine.ts->function:assess/gap-engine.ts:fallbackProof",
+      "source": "file:assess/gap-engine.ts",
+      "target": "function:assess/gap-engine.ts:fallbackProof",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "assess/gap-engine.ts:83 declares fallbackProof"
       }
     },
     {
@@ -1432,7 +1465,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "assess/gap-engine.ts:91 declares assessIntentToCode"
+        "fact": "assess/gap-engine.ts:101 declares assessIntentToCode"
       }
     },
     {
@@ -1443,7 +1476,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "assess/gap-engine.ts:177 declares assessCodeToIntent"
+        "fact": "assess/gap-engine.ts:190 declares assessCodeToIntent"
       }
     },
     {
@@ -1454,7 +1487,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "assess/gap-engine.ts:219 declares assessBaseline"
+        "fact": "assess/gap-engine.ts:235 declares assessBaseline"
       }
     },
     {
@@ -2392,9 +2425,9 @@
         "intent:coverage-manifest.reconcile-spans"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2442,9 +2475,9 @@
         "function:assess/coverage.ts:areaCoverage"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2453,12 +2486,12 @@
       "category": "alignment.unexplained",
       "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "assess/gap-engine.ts:91-174 function assessIntentToCode",
+        "fact": "assess/gap-engine.ts:101-187 function assessIntentToCode",
         "strength": "verified",
         "filePath": "assess/gap-engine.ts",
         "lineRange": [
-          91,
-          174
+          101,
+          187
         ]
       },
       "intentRef": "UNCONFIRMED",
@@ -2492,9 +2525,9 @@
         "function:assess/gap-engine.ts:assessIntentToCode"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2503,12 +2536,12 @@
       "category": "alignment.unexplained",
       "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "assess/gap-engine.ts:177-216 function assessCodeToIntent",
+        "fact": "assess/gap-engine.ts:190-232 function assessCodeToIntent",
         "strength": "verified",
         "filePath": "assess/gap-engine.ts",
         "lineRange": [
-          177,
-          216
+          190,
+          232
         ]
       },
       "intentRef": "UNCONFIRMED",
@@ -2542,9 +2575,9 @@
         "function:assess/gap-engine.ts:assessCodeToIntent"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2553,12 +2586,12 @@
       "category": "alignment.unexplained",
       "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "assess/gap-engine.ts:219-255 function assessBaseline",
+        "fact": "assess/gap-engine.ts:235-271 function assessBaseline",
         "strength": "verified",
         "filePath": "assess/gap-engine.ts",
         "lineRange": [
-          219,
-          255
+          235,
+          271
         ]
       },
       "intentRef": "UNCONFIRMED",
@@ -2592,9 +2625,9 @@
         "function:assess/gap-engine.ts:assessBaseline"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2642,9 +2675,9 @@
         "function:assess/missing-code-proof.ts:absenceWording"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2692,9 +2725,9 @@
         "function:assess/severity.ts:headlineTrust"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2742,9 +2775,9 @@
         "function:fact-layer/fingerprint.ts:bindSpan"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2792,9 +2825,9 @@
         "function:fact-layer/fingerprint.ts:reconcileSpan"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2842,9 +2875,9 @@
         "function:fact-layer/index-builder.ts:deriveOwnership"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2892,9 +2925,9 @@
         "function:fact-layer/index-builder.ts:toGraphNode"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2942,9 +2975,9 @@
         "function:fact-layer/index-builder.ts:toGraphEdge"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -2992,9 +3025,9 @@
         "function:fact-layer/scan.ts:partitionAreas"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -3042,9 +3075,9 @@
         "function:fact-layer/scan.ts:buildScanResult"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -3092,9 +3125,9 @@
         "function:intent/intent-spec.ts:hashIntentSpec"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -3142,9 +3175,9 @@
         "function:intent/intent-spec.ts:intentNodes"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -3192,9 +3225,9 @@
         "function:intent/intent-spec.ts:toExpectations"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -3242,9 +3275,9 @@
         "function:overlay/assemble.ts:assembleGraph"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     },
     {
@@ -3292,9 +3325,9 @@
         "function:overlay/validate.ts:validateAssessmentGraph"
       ],
       "binding": {
-        "assessedAtCommit": "9e8f96f",
+        "assessedAtCommit": "717356b",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:38:48.247Z"
+        "generated": "2026-06-19T23:41:10.878Z"
       }
     }
   ],
@@ -3325,6 +3358,7 @@
         "function:assess/gap-engine.ts:resetFindingIds",
         "function:assess/gap-engine.ts:nextId",
         "function:assess/gap-engine.ts:edge",
+        "function:assess/gap-engine.ts:fallbackProof",
         "function:assess/gap-engine.ts:assessIntentToCode",
         "function:assess/gap-engine.ts:assessCodeToIntent",
         "function:assess/gap-engine.ts:assessBaseline",
@@ -3403,9 +3437,9 @@
   ],
   "coverage": {
     "totalAreas": 5,
-    "totalNodes": 57,
+    "totalNodes": 58,
     "byStatus": {
-      "assessed": 56,
+      "assessed": 57,
       "partial": 0,
       "not_assessed": 1,
       "coverage_insufficient": 0
@@ -3435,6 +3469,6 @@
       "code_to_intent": 18,
       "baseline_to_code": 0
     },
-    "headline": "intent-bound: scanned 13 code files / 56 nodes; 0 P0 / 0 P1 / 19 P2 / 0 P3 (headline trust: inferred)."
+    "headline": "intent-bound: scanned 13 code files / 57 nodes; 0 P0 / 0 P1 / 19 P2 / 0 P3 (headline trust: inferred)."
   }
 }

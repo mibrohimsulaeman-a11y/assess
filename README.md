@@ -59,14 +59,17 @@ read repo -> build index -> generate assessment graph -> validate evidence -> re
 
 ## Current status
 
-This repository is an early but **executable** open-source implementation:
+This repository is an early but **executable** open-source implementation. The
+source of truth for actual assessment runs is the zero-dependency runtime, not
+the typed helper modules:
 
-- `@assess/core`: graph contract, fact-layer primitives, assessment utilities,
-  assembly, and validation.
-- **`packages/core/runtime/engine.mjs`**: a zero-dependency headless assessment
-  engine — it scans a real TS/JS repo, builds the index, runs all three gap
-  directions, assembles and validates an `assessment-graph.json`. Runs with
-  plain `node`, before anything is installed.
+- `@assess/core`: graph contract, schemas, validator, fact-layer primitives, and
+  typed reference helpers. It is not the production scanner/runtime pipeline by
+  itself.
+- **`packages/core/runtime/engine.mjs`**: the executable headless assessment
+  engine — it scans a real TS/JS repo, builds the index, runs the currently
+  implemented gap directions, assembles and validates an `assessment-graph.json`.
+  Runs with plain `node`, before anything is installed.
 - **`plugins/assess/mcp/assess-server.mjs`**: a zero-dependency MCP server
   (JSON-RPC over stdio) exposing `assess_repo`, `validate_graph`,
   `list_findings`, `explain_finding`, `export_report`.
@@ -77,9 +80,12 @@ This repository is an early but **executable** open-source implementation:
 - Zero-dependency honesty-gate fixtures proving the validator on sample graphs.
 
 Honest limitation: the TS/JS scanner is a deterministic MVP (regex + brace
-matching), and intent-mode polish, more baseline rules, and a GitHub Action are
-roadmap work. The engine and MCP server are proven to run end-to-end with
-`node`; full workspace build is validated through the pnpm build pipeline when dependencies are installed.
+matching). It does not yet implement a real AST/call graph, broad route parsing,
+or behavioral partial/misaligned analysis. The typed `src/**` modules are
+reference helpers and contracts; `packages/core/runtime/engine.mjs` is the
+executable source of truth for generated assessment graphs. The engine and MCP
+server are proven to run end-to-end with `node`; full workspace build is
+validated through the pnpm build pipeline when dependencies are installed.
 
 ---
 
@@ -96,11 +102,11 @@ assess/
     mcp/assess-server.mjs           # zero-dep MCP server (the portable boundary)
   skills/assess/                    # core /assess:assess workflow contract + references
   packages/
-    core/                           # @assess/core — fact layer + assessment engine
+    core/                           # @assess/core — contracts + typed reference helpers
       src/
-        fact-layer/                 # scan, index builder, fingerprinting
+        fact-layer/                 # scan/index/fingerprint helper modules
         intent/                     # confirmed intent spec + binding hash
-        assess/                     # gap engine, missing-code proof, severity, coverage
+        assess/                     # typed gap helpers, missing-code proof, severity, coverage
         overlay/                    # assemble + validate honesty gates
       runtime/engine.mjs            # zero-dep headless engine (scan -> graph -> validate)
       runtime/assess-run.mjs        # optional CLI shim (CI/debug only)
@@ -131,6 +137,12 @@ It emits findings in three directions:
 | `baseline → code` | Does code violate engineering policy? | security, reliability, maintainability |
 
 The core rule: a finding must not claim more than its evidence supports.
+
+The runtime currently emits missing, unexplained, and baseline-violation
+findings from deterministic TS/JS indexing. The typed helper API still names
+`partial` and `misaligned` verdict shapes because the graph contract supports
+them, but the runtime does not claim behavioral partial/misaligned detection
+until stronger analysis exists.
 
 ---
 
