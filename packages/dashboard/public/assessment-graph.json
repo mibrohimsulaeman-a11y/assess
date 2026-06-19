@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "kind": "assessment",
   "binding": {
-    "assessedAtCommit": "7c5817d",
+    "assessedAtCommit": "9e8f96f",
     "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-    "generated": "2026-06-19T23:35:54.687Z"
+    "generated": "2026-06-19T23:38:48.247Z"
   },
   "project": {
     "name": "src",
@@ -13,8 +13,8 @@
     ],
     "frameworks": [],
     "description": "intent-bound assessment",
-    "analyzedAt": "2026-06-19T23:35:54.687Z",
-    "gitCommitHash": "7c5817d"
+    "analyzedAt": "2026-06-19T23:38:48.247Z",
+    "gitCommitHash": "9e8f96f"
   },
   "intents": [
     {
@@ -577,7 +577,7 @@
       "type": "file",
       "name": "fingerprint.ts",
       "filePath": "fact-layer/fingerprint.ts",
-      "summary": "TypeScript file, 63 lines, 5 symbol(s)",
+      "summary": "TypeScript file, 209 lines, 8 symbol(s)",
       "tags": [],
       "complexity": "simple",
       "assessment": {
@@ -611,15 +611,81 @@
       }
     },
     {
+      "id": "function:fact-layer/fingerprint.ts:stripComments",
+      "type": "function",
+      "name": "stripComments",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        15,
+        80
+      ],
+      "summary": "function stripComments (66 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "moderate",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/fingerprint.ts:collapseWhitespaceOutsideStrings",
+      "type": "function",
+      "name": "collapseWhitespaceOutsideStrings",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        82,
+        123
+      ],
+      "summary": "function collapseWhitespaceOutsideStrings (42 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "moderate",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:fact-layer/fingerprint.ts:stripTrailingCommasOutsideStrings",
+      "type": "function",
+      "name": "stripTrailingCommasOutsideStrings",
+      "filePath": "fact-layer/fingerprint.ts",
+      "lineRange": [
+        125,
+        161
+      ],
+      "summary": "function stripTrailingCommasOutsideStrings (37 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
       "id": "function:fact-layer/fingerprint.ts:normalizeSource",
       "type": "function",
       "name": "normalizeSource",
       "filePath": "fact-layer/fingerprint.ts",
       "lineRange": [
-        21,
-        27
+        171,
+        175
       ],
-      "summary": "function normalizeSource (7 lines, exported)",
+      "summary": "function normalizeSource (5 lines, exported)",
       "tags": [
         "exported"
       ],
@@ -638,8 +704,8 @@
       "name": "normalizedFingerprint",
       "filePath": "fact-layer/fingerprint.ts",
       "lineRange": [
-        31,
-        33
+        177,
+        179
       ],
       "summary": "function normalizedFingerprint (3 lines, exported)",
       "tags": [
@@ -660,8 +726,8 @@
       "name": "bindSpan",
       "filePath": "fact-layer/fingerprint.ts",
       "lineRange": [
-        35,
-        46
+        181,
+        192
       ],
       "summary": "function bindSpan (12 lines, exported)",
       "tags": [
@@ -685,8 +751,8 @@
       "name": "reconcileSpan",
       "filePath": "fact-layer/fingerprint.ts",
       "lineRange": [
-        54,
-        62
+        200,
+        208
       ],
       "summary": "function reconcileSpan (9 lines, exported)",
       "tags": [
@@ -1480,6 +1546,39 @@
       }
     },
     {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:stripComments",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:stripComments",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:15 declares stripComments"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:collapseWhitespaceOutsideStrings",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:collapseWhitespaceOutsideStrings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:82 declares collapseWhitespaceOutsideStrings"
+      }
+    },
+    {
+      "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:stripTrailingCommasOutsideStrings",
+      "source": "file:fact-layer/fingerprint.ts",
+      "target": "function:fact-layer/fingerprint.ts:stripTrailingCommasOutsideStrings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:125 declares stripTrailingCommasOutsideStrings"
+      }
+    },
+    {
       "id": "edge:contains:file:fact-layer/fingerprint.ts->function:fact-layer/fingerprint.ts:normalizeSource",
       "source": "file:fact-layer/fingerprint.ts",
       "target": "function:fact-layer/fingerprint.ts:normalizeSource",
@@ -1487,7 +1586,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "fact-layer/fingerprint.ts:21 declares normalizeSource"
+        "fact": "fact-layer/fingerprint.ts:171 declares normalizeSource"
       }
     },
     {
@@ -1498,7 +1597,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "fact-layer/fingerprint.ts:31 declares normalizedFingerprint"
+        "fact": "fact-layer/fingerprint.ts:177 declares normalizedFingerprint"
       }
     },
     {
@@ -1509,7 +1608,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "fact-layer/fingerprint.ts:35 declares bindSpan"
+        "fact": "fact-layer/fingerprint.ts:181 declares bindSpan"
       }
     },
     {
@@ -1520,7 +1619,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "fact-layer/fingerprint.ts:54 declares reconcileSpan"
+        "fact": "fact-layer/fingerprint.ts:200 declares reconcileSpan"
       }
     },
     {
@@ -2293,9 +2392,9 @@
         "intent:coverage-manifest.reconcile-spans"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2343,9 +2442,9 @@
         "function:assess/coverage.ts:areaCoverage"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2393,9 +2492,9 @@
         "function:assess/gap-engine.ts:assessIntentToCode"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2443,9 +2542,9 @@
         "function:assess/gap-engine.ts:assessCodeToIntent"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2493,9 +2592,9 @@
         "function:assess/gap-engine.ts:assessBaseline"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2543,9 +2642,9 @@
         "function:assess/missing-code-proof.ts:absenceWording"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2593,9 +2692,9 @@
         "function:assess/severity.ts:headlineTrust"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2604,12 +2703,12 @@
       "category": "alignment.unexplained",
       "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "fact-layer/fingerprint.ts:35-46 function bindSpan",
+        "fact": "fact-layer/fingerprint.ts:181-192 function bindSpan",
         "strength": "verified",
         "filePath": "fact-layer/fingerprint.ts",
         "lineRange": [
-          35,
-          46
+          181,
+          192
         ]
       },
       "intentRef": "UNCONFIRMED",
@@ -2643,9 +2742,9 @@
         "function:fact-layer/fingerprint.ts:bindSpan"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2654,12 +2753,12 @@
       "category": "alignment.unexplained",
       "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "fact-layer/fingerprint.ts:54-62 function reconcileSpan",
+        "fact": "fact-layer/fingerprint.ts:200-208 function reconcileSpan",
         "strength": "verified",
         "filePath": "fact-layer/fingerprint.ts",
         "lineRange": [
-          54,
-          62
+          200,
+          208
         ]
       },
       "intentRef": "UNCONFIRMED",
@@ -2693,9 +2792,9 @@
         "function:fact-layer/fingerprint.ts:reconcileSpan"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2743,9 +2842,9 @@
         "function:fact-layer/index-builder.ts:deriveOwnership"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2793,9 +2892,9 @@
         "function:fact-layer/index-builder.ts:toGraphNode"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2843,9 +2942,9 @@
         "function:fact-layer/index-builder.ts:toGraphEdge"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2893,9 +2992,9 @@
         "function:fact-layer/scan.ts:partitionAreas"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2943,9 +3042,9 @@
         "function:fact-layer/scan.ts:buildScanResult"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -2993,9 +3092,9 @@
         "function:intent/intent-spec.ts:hashIntentSpec"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -3043,9 +3142,9 @@
         "function:intent/intent-spec.ts:intentNodes"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -3093,9 +3192,9 @@
         "function:intent/intent-spec.ts:toExpectations"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -3143,9 +3242,9 @@
         "function:overlay/assemble.ts:assembleGraph"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     },
     {
@@ -3193,9 +3292,9 @@
         "function:overlay/validate.ts:validateAssessmentGraph"
       ],
       "binding": {
-        "assessedAtCommit": "7c5817d",
+        "assessedAtCommit": "9e8f96f",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:35:54.687Z"
+        "generated": "2026-06-19T23:38:48.247Z"
       }
     }
   ],
@@ -3249,6 +3348,9 @@
       "nodeIds": [
         "file:fact-layer/fingerprint.ts",
         "function:fact-layer/fingerprint.ts:spanSha256",
+        "function:fact-layer/fingerprint.ts:stripComments",
+        "function:fact-layer/fingerprint.ts:collapseWhitespaceOutsideStrings",
+        "function:fact-layer/fingerprint.ts:stripTrailingCommasOutsideStrings",
         "function:fact-layer/fingerprint.ts:normalizeSource",
         "function:fact-layer/fingerprint.ts:normalizedFingerprint",
         "function:fact-layer/fingerprint.ts:bindSpan",
@@ -3301,9 +3403,9 @@
   ],
   "coverage": {
     "totalAreas": 5,
-    "totalNodes": 54,
+    "totalNodes": 57,
     "byStatus": {
-      "assessed": 53,
+      "assessed": 56,
       "partial": 0,
       "not_assessed": 1,
       "coverage_insufficient": 0
@@ -3333,6 +3435,6 @@
       "code_to_intent": 18,
       "baseline_to_code": 0
     },
-    "headline": "intent-bound: scanned 13 code files / 53 nodes; 0 P0 / 0 P1 / 19 P2 / 0 P3 (headline trust: inferred)."
+    "headline": "intent-bound: scanned 13 code files / 56 nodes; 0 P0 / 0 P1 / 19 P2 / 0 P3 (headline trust: inferred)."
   }
 }

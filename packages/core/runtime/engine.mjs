@@ -54,14 +54,158 @@ const STRENGTH_RANK = { verified: 2, inferred: 1, unverifiable: 0 };
 function sha256(s) {
   return "sha256:" + crypto.createHash("sha256").update(s, "utf8").digest("hex");
 }
-function normalizeSource(src) {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
-    .replace(/#[^\n]*/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/,\s*([)\]}])/g, "$1")
-    .trim();
+function stripComments(source) {
+  let out = "";
+  let state = "normal";
+  let escaped = false;
+  let lineStart = true;
+
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    const next = source[i + 1];
+
+    if (state === "line_comment") {
+      if (ch === "\n") {
+        out += ch;
+        state = "normal";
+        lineStart = true;
+      }
+      continue;
+    }
+    if (state === "block_comment") {
+      if (ch === "*" && next === "/") {
+        i++;
+        state = "normal";
+      }
+      continue;
+    }
+    if (state === "single_quote" || state === "double_quote" || state === "template") {
+      out += ch;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (state === "single_quote" && ch === "'") state = "normal";
+      else if (state === "double_quote" && ch === '"') state = "normal";
+      else if (state === "template" && ch === "`") state = "normal";
+      continue;
+    }
+
+    if (ch === "/" && next === "/") {
+      state = "line_comment";
+      i++;
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      if (!out.endsWith(" ") && !out.endsWith("\n")) out += " ";
+      state = "block_comment";
+      i++;
+      continue;
+    }
+    if (ch === "#" && lineStart) {
+      state = "line_comment";
+      continue;
+    }
+    if (ch === "'") state = "single_quote";
+    else if (ch === '"') state = "double_quote";
+    else if (ch === "`") state = "template";
+
+    out += ch;
+    if (ch === "\n") lineStart = true;
+    else if (!/\s/.test(ch)) lineStart = false;
+  }
+  return out;
+}
+
+function collapseWhitespaceOutsideStrings(source) {
+  let out = "";
+  let state = "normal";
+  let escaped = false;
+  let pendingSpace = false;
+
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    if (state === "single_quote" || state === "double_quote" || state === "template") {
+      if (pendingSpace && out && !out.endsWith(" ")) {
+        out += " ";
+        pendingSpace = false;
+      }
+      out += ch;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (state === "single_quote" && ch === "'") state = "normal";
+      else if (state === "double_quote" && ch === '"') state = "normal";
+      else if (state === "template" && ch === "`") state = "normal";
+      continue;
+    }
+
+    if (/\s/.test(ch)) {
+      pendingSpace = true;
+      continue;
+    }
+    if (pendingSpace && out && !out.endsWith(" ")) out += " ";
+    pendingSpace = false;
+
+    if (ch === "'") state = "single_quote";
+    else if (ch === '"') state = "double_quote";
+    else if (ch === "`") state = "template";
+    out += ch;
+  }
+  return out.trim();
+}
+
+function stripTrailingCommasOutsideStrings(source) {
+  let out = "";
+  let state = "normal";
+  let escaped = false;
+
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    if (state === "single_quote" || state === "double_quote" || state === "template") {
+      out += ch;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (state === "single_quote" && ch === "'") state = "normal";
+      else if (state === "double_quote" && ch === '"') state = "normal";
+      else if (state === "template" && ch === "`") state = "normal";
+      continue;
+    }
+
+    if (ch === "'") state = "single_quote";
+    else if (ch === '"') state = "double_quote";
+    else if (ch === "`") state = "template";
+
+    if (state === "normal" && ch === ",") {
+      let j = i + 1;
+      while (j < source.length && /\s/.test(source[j])) j++;
+      if (j < source.length && ")]}".includes(source[j])) {
+        i = j - 1;
+        continue;
+      }
+    }
+    out += ch;
+  }
+  return out.trim();
+}
+
+export function normalizeSource(src) {
+  return stripTrailingCommasOutsideStrings(collapseWhitespaceOutsideStrings(stripComments(src)));
 }
 function normalizedFingerprint(src) {
   return "nfp:" + crypto.createHash("sha256").update(normalizeSource(src), "utf8").digest("hex");
