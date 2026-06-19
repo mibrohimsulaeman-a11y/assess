@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   smoke:
-    name: zero-dependency graph checks
+    name: zero-dependency contract checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -21,6 +21,10 @@ jobs:
         run: node packages/core/test/run-fixtures.cjs
       - name: Validate sample graph
         run: node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json
+      - name: Engine end-to-end (self-validating atomic write)
+        run: node packages/core/runtime/assess-run.mjs --repo packages/core/src --intent examples/intent/assess-core.intent.json --out .assessment
+      - name: MCP server contract
+        run: node plugins/assess/mcp/test/mcp-contract.cjs
 
   build:
     name: workspace build
@@ -35,7 +39,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Test
         run: pnpm test
       - name: Build

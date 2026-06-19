@@ -137,6 +137,15 @@ const cases = [
     },
   },
   {
+    name: "duplicate-edge-id",
+    expect: "fail",
+    mutate: (g) => {
+      const e = { id: "dup", source: "file:a.ts", target: "file:a.ts", type: "contains", direction: "forward", weight: 1 };
+      g.edges.push({ ...e }, { ...e });
+      return g;
+    },
+  },
+  {
     name: "node-without-coverage-status",
     expect: "fail",
     mutate: (g) => {

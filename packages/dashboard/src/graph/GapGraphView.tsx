@@ -1,16 +1,22 @@
 import { useMemo } from "react";
 import type { CSSProperties } from "react";
-import ReactFlow, { Background, Controls, Panel, MarkerType, Position } from "reactflow";
-import type { Edge, Node } from "reactflow";
+import ReactFlow, { Background, Controls, Panel, MarkerType, Position, Handle } from "reactflow";
+import type { Edge, Node, NodeProps } from "reactflow";
 import "reactflow/dist/style.css";
-import type { AssessmentGraph, GapDirection, GraphNode } from "@assess/core";
+import type { AssessmentGraph, GapDirection, GraphNode, Severity } from "@assess/core";
 import { useStore, visibleFindings } from "../store.js";
 import { SEVERITY_COLOR } from "../nodeColors.js";
 
 // Gap map: the should-be (intent / capability / baseline) on the LEFT, the
 // as-is code on the RIGHT, joined by the three gap-direction edges. Color of an
-// edge = direction; thickness = severity; a node's fill = its worst severity.
+// edge = direction; thickness = severity; a node's accent = its worst severity.
 // This is the view that makes assess different from a comprehension graph.
+//
+// Nodes are cards (custom node type) rather than solid colored boxes: a left
+// accent bar carries the worst-severity color, a type tag says what kind of
+// thing it is (intent / capability / baseline / file), the name is bold, and
+// the severity reads as a labeled pill. White-on-color text is gone, so labels
+// stay legible regardless of severity.
 
 const DIRECTION_COLOR: Record<GapDirection, string> = {
   intent_to_code: "#7c3aed",
@@ -20,10 +26,45 @@ const DIRECTION_COLOR: Record<GapDirection, string> = {
 
 const SEV_RANK: Record<string, number> = { P0: 3, P1: 2, P2: 1, P3: 0 };
 const SATISFIED = new Set(["satisfied", "justified"]);
+const NEUTRAL_SIDE = "#94a3b8";
 
 function isIntentSide(id: string): boolean {
   return id.startsWith("intent:") || id.startsWith("capability:") || id === "baseline";
 }
+
+function tagFor(id: string, node?: GraphNode): string {
+  if (id === "baseline") return "baseline";
+  if (id.startsWith("capability:")) return "capability";
+  if (id.startsWith("intent:")) return "intent";
+  return node?.type ?? "code";
+}
+
+type GapNodeData = { name: string; path?: string; tag: string; severity?: Severity | null };
+
+function GapNode({ data }: NodeProps<GapNodeData>) {
+  const accent = data.severity ? SEVERITY_COLOR[data.severity] : NEUTRAL_SIDE;
+  return (
+    <div className="gnode" title={data.path ?? data.name}>
+      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
+      <div className="gnode__accent" style={{ background: accent }} />
+      <div className="gnode__body">
+        <div className="gnode__top">
+          <span className="gtag">{data.tag}</span>
+        </div>
+        <div className="gnode__name">{data.name}</div>
+        {data.path ? <div className="gnode__path">{data.path}</div> : null}
+        {data.severity ? (
+          <div className="gnode__row">
+            <span className="gpill" style={{ background: SEVERITY_COLOR[data.severity] }}>{data.severity}</span>
+          </div>
+        ) : null}
+      </div>
+      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
+    </div>
+  );
+}
+
+const NODE_TYPES = { gapNode: GapNode };
 
 export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
   const { filters, selectNode, selectFinding } = useStore();
@@ -63,36 +104,26 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
       place(e.target);
     }
 
-    const labelFor = (id: string): string => nodeMap.get(id)?.name ?? id;
-    const nodeColor = (id: string): string => {
-      const sev = nodeMap.get(id)?.assessment?.worstSeverity;
-      if (sev) return SEVERITY_COLOR[sev];
-      return isIntentSide(id) ? "#475569" : "#15803d";
-    };
-
+    const ROWH = 104;
+    const RIGHT_X = 520;
     const mkNode = (id: string, x: number, y: number): Node => {
-      const style: CSSProperties = {
-        background: nodeColor(id),
-        color: "#fff",
-        border: "none",
-        borderRadius: 8,
-        padding: "6px 10px",
-        fontSize: 12,
-        width: 190,
-      };
+      const node = nodeMap.get(id);
       return {
         id,
+        type: "gapNode",
         position: { x, y },
-        data: { label: labelFor(id) },
-        style,
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
+        data: {
+          name: node?.name ?? id,
+          path: node?.filePath,
+          tag: tagFor(id, node),
+          severity: node?.assessment?.worstSeverity ?? null,
+        } as GapNodeData,
       };
     };
 
     const rfNodes: Node[] = [
-      ...leftIds.map((id, i) => mkNode(id, 20, 20 + i * 84)),
-      ...rightIds.map((id, i) => mkNode(id, 470, 20 + i * 84)),
+      ...leftIds.map((id, i) => mkNode(id, 20, 20 + i * ROWH)),
+      ...rightIds.map((id, i) => mkNode(id, RIGHT_X, 20 + i * ROWH)),
     ];
 
     const rfEdges: Edge[] = gapEdges.map((e) => {
@@ -100,14 +131,18 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
       const fin = gap.findingId ? findingById.get(gap.findingId) : undefined;
       const stroke = DIRECTION_COLOR[gap.direction];
       const width = fin ? 1 + (SEV_RANK[fin.severity] ?? 0) : 1.5;
-      const labelStyle: CSSProperties = { fontSize: 10, fill: stroke };
+      const labelStyle: CSSProperties = { fontSize: 10, fill: stroke, fontWeight: 600 };
+      const labelBgStyle: CSSProperties = { fill: "#fff", fillOpacity: 0.85 };
       const style: CSSProperties = { stroke, strokeWidth: width };
       return {
         id: e.id,
         source: e.source,
         target: e.target,
-        label: fin ? `${gap.status} \u00b7 ${fin.severity}` : gap.status,
+        label: fin ? `${gap.status} · ${fin.severity}` : gap.status,
         labelStyle,
+        labelBgStyle,
+        labelBgPadding: [4, 2],
+        labelBgBorderRadius: 4,
         style,
         markerEnd: { type: MarkerType.ArrowClosed, color: stroke },
         animated: gap.status === "misaligned" || gap.status === "violation",
@@ -135,7 +170,9 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        fitView
+        nodeTypes={NODE_TYPES}
+        defaultViewport={{ x: 24, y: 16, zoom: 0.85 }}
+        minZoom={0.2}
         onNodeClick={(_, n) => selectNode(n.id)}
         onEdgeClick={(_, ed) => {
           const fid = (ed.data as { findingId?: string } | undefined)?.findingId;

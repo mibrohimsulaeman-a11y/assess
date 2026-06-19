@@ -191,6 +191,86 @@ body { font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; colo
 .severity-pill--p2 { border-color: #c2410c; color: #c2410c; }
 .severity-pill--p3 { border-color: #475569; color: #475569; }
 
+/* ---------- graph node cards (coverage + gap maps) ----------
+ * Shared card chrome for the custom ReactFlow nodes. The left accent bar
+ * carries the status/severity color so meaning reads at a glance; the body
+ * uses real type hierarchy (bold name, muted path) instead of a cramped
+ * two-line text label. Kept here so coverage and gap nodes never drift. */
+.gnode {
+  display: flex;
+  align-items: stretch;
+  width: 230px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  font: 13px/1.35 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  cursor: pointer;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+.gnode:hover { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16); transform: translateY(-1px); }
+.gnode__accent { width: 6px; flex: 0 0 6px; }
+.gnode__body { padding: 8px 11px; min-width: 0; flex: 1; }
+.gnode__top { display: flex; align-items: center; gap: 6px; }
+.gnode__name {
+  font-weight: 650;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gnode__path {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gnode__row { display: flex; align-items: center; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+
+/* status / severity pill: filled chip whose color = meaning */
+.gpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #fff;
+  white-space: nowrap;
+}
+.gpill--soft { background: #f1f5f9; color: #475569; font-weight: 500; }
+
+/* small leading type tag (file / capability / intent / baseline) */
+.gtag {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* the area header card sits above its column of coverage nodes */
+.gnode--area { box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12); }
+.gnode--area .gnode__name { font-size: 14px; }
+.gnode__count { color: var(--muted); font-size: 11px; font-weight: 500; }
+
+/* keep ReactFlow's default node frame from doubling our card border */
+.react-flow__node-coverageNode,
+.react-flow__node-areaNode,
+.react-flow__node-gapNode {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 10px;
+  width: auto;
+}
+
 @media (max-width: 900px) {
   .run-summary__hero { flex-direction: column; }
   .run-summary__cards { grid-template-columns: 1fr; }

@@ -19,6 +19,15 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+// The structural + honesty validator is the SAME zero-dep module CI and the MCP
+// server use. Loading it here means assessRepo can never return or write a graph
+// that the published contract would reject.
+const require = createRequire(import.meta.url);
+const ENGINE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const VALIDATOR_PATH = path.join(ENGINE_DIR, "..", "scripts", "validate-graph.cjs");
 
 // ---------- constants ----------
 
@@ -325,10 +334,14 @@ export function assessRepo(opts) {
   const observations = [];
   const fileExtracts = [];
   const symbolById = new Map();
+  // Measured index coverage: fraction of enumerated code files we actually read
+  // and parsed into the index. Drives the missing-code proof instead of a guess.
+  let indexedFileCount = 0;
 
   for (const f of assessedFiles) {
     let content = "";
     try { content = fs.readFileSync(f.abs, "utf8"); } catch { continue; }
+    indexedFileCount++;
     const ex = extractFromFile(f.rel, content);
     fileExtracts.push(ex);
     const isTest = /(\.|\/)(test|spec)\.|(^|\/)(tests?|__tests__)\//.test(f.rel);
@@ -409,12 +422,18 @@ export function assessRepo(opts) {
         targetNodeIds: [obs.nodeId],
         binding: { ...binding, spanSha256: obs.span.spanSha256, normalizedFingerprint: obs.span.normalizedFingerprint },
       });
-      gapEdges.push({ id: `gap:baseline_to_code:baseline->${obs.nodeId}`, source: "baseline", target: obs.nodeId, type: "baseline_to_code", direction: "forward", weight: 0.9, gap: { direction: "baseline_to_code", status: "violation", findingId: id }, evidence: { fact: v.rule } });
+      // ID must include the finding id: a single node can have several baseline
+      // violations, and keying only on the target would collide (duplicate edge
+      // ids -> the renderer silently drops edges, and integrity is violated).
+      gapEdges.push({ id: `gap:baseline_to_code:${id}:baseline->${obs.nodeId}`, source: "baseline", target: obs.nodeId, type: "baseline_to_code", direction: "forward", weight: 0.9, gap: { direction: "baseline_to_code", status: "violation", findingId: id }, evidence: { fact: v.rule } });
     }
   }
 
   // Directions 1 & 2 only run with confirmed intent (otherwise honestly skipped)
   const obsByNode = new Map(observations.map((o) => [o.nodeId, o]));
+  // Real coverage of the symbol index: how much of the enumerated code we parsed.
+  // 0 when there is nothing to index, so an absence claim stays "coverage_insufficient".
+  const indexCoverage = assessedFiles.length ? indexedFileCount / assessedFiles.length : 0;
   if (hasIntent) {
     const ownsByNode = new Map();
     for (const cap of spec.capabilities) for (const cid of cap.ownsComponentIds || []) ownsByNode.set(cid, cap.id);
@@ -429,7 +448,16 @@ export function assessRepo(opts) {
             status = "missing"; category = "alignment.missing"; ruleSeverity = p.criticalPath ? "P0" : "P1";
             proof = computeMissingCodeProof({
               searchedRoots: [path.relative(repoRoot, repoRoot) || "."], excludedRoots: ["node_modules", "dist", "build"],
-              requiredRecordTypes: ["symbol"], coverageActual: assessedFiles.length > 0 ? 0.8 : 0,
+              requiredRecordTypes: ["symbol"],
+              // MEASURED, not assumed: the fraction of enumerated code files we could
+              // actually parse into the symbol index. This is a real coverage figure.
+              coverageActual: indexCoverage,
+              // A regex/brace scanner can never prove TRUE absence: dynamic dispatch,
+              // re-exports, and computed names are invisible to it. This standing
+              // residue keeps every absence proof at most "not_found_in_index", which
+              // the severity engine caps at <=P2 — so a scanner limitation can never
+              // masquerade as a P0/P1 "proven absent" finding.
+              lowConfidenceResidues: ["scanner cannot resolve dynamic/computed/re-exported symbols"],
             });
           } else { status = "satisfied"; }
           let findingId;
@@ -549,13 +577,30 @@ export function assessRepo(opts) {
     findings, areas, coverage, summary,
   };
 
-  // WRITE
+  // VALIDATE before publishing. The engine must never hand back — let alone write
+  // to disk — a graph that violates the structural or honesty contract. This is
+  // the same validator CI and the MCP server run, so there is a single source of
+  // truth for what "valid" means.
+  const { validate } = require(VALIDATOR_PATH);
+  const verdict = validate(graph);
+  if (verdict.errors.length) {
+    throw new Error(
+      `assess: assembled graph failed validation (${verdict.errors.length} error(s)); refusing to publish:\n  - ` +
+        verdict.errors.join("\n  - "),
+    );
+  }
+
+  // WRITE atomically: serialize to a temp file in the SAME directory, then rename.
+  // rename(2) is atomic on a single filesystem, so a reader (dashboard, hook, MCP
+  // consumer) never observes a half-written or invalid assessment-graph.json.
   let outPath = null;
   if (opts.outDir) {
     const dir = path.resolve(opts.outDir);
     fs.mkdirSync(dir, { recursive: true });
     outPath = path.join(dir, "assessment-graph.json");
-    fs.writeFileSync(outPath, JSON.stringify(graph, null, 2));
+    const tmpPath = path.join(dir, `.assessment-graph.${process.pid}.tmp`);
+    fs.writeFileSync(tmpPath, JSON.stringify(graph, null, 2));
+    fs.renameSync(tmpPath, outPath);
   }
 
   return { graph, outPath, summary: { ...summary, hasIntent, files: assessedFiles.length, nodes: stampedNodes.length, findings: findings.length } };

@@ -1,0 +1,14 @@
+{
+  "name": "assess",
+  "owner": {
+    "name": "Boim L",
+    "url": "https://github.com/mibrohimsulaeman-a11y"
+  },
+  "plugins": [
+    {
+      "name": "assess",
+      "source": "./",
+      "description": "Evidence-bound intent-vs-code assessment layer: reads a repo, builds a deterministic index, emits a validated assessment-graph.json with gaps in three directions, and never edits your code."
+    }
+  ]
+}

@@ -8,9 +8,13 @@ build/
 coverage/
 .vite/
 
-# local assessment output
+# local assessment output (dogfooding the plugin against this repo)
 .assessment/
 *.assessment-graph.local.json
+
+# local plugin install / enable state from dogfooding (not shared config)
+.claude/settings.json
+.claude/settings.local.json
 
 # runtime/editor noise
 .DS_Store

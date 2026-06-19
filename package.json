@@ -21,8 +21,10 @@
     "dev:dashboard": "pnpm --filter @assess/dashboard dev",
     "validate:sample": "node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json",
     "test:fixtures": "node packages/core/test/run-fixtures.cjs",
-    "test": "pnpm test:fixtures && pnpm validate:sample",
-    "ci:smoke": "node packages/core/test/run-fixtures.cjs && node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json"
+    "test:mcp": "node plugins/assess/mcp/test/mcp-contract.cjs",
+    "test:e2e": "node packages/core/runtime/assess-run.mjs --repo packages/core/src --intent examples/intent/assess-core.intent.json --out .assessment",
+    "test": "pnpm test:fixtures && pnpm validate:sample && pnpm test:e2e && pnpm test:mcp",
+    "ci:smoke": "pnpm test:fixtures && pnpm validate:sample && pnpm test:e2e && pnpm test:mcp"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

@@ -36,7 +36,14 @@ function validate(graph) {
   const known = (id) => nodeIds.has(id) || SENTINELS.has(id);
 
   // 2. referential integrity
+  const seenEdgeIds = new Set();
   for (const e of graph.edges || []) {
+    if (seenEdgeIds.has(e.id)) {
+      // Duplicate edge ids break renderers (React keys collide -> edges are
+      // silently dropped) and make the graph non-addressable. Treat as an error.
+      err(`edge ${e.id}: duplicate edge id`);
+    }
+    seenEdgeIds.add(e.id);
     if (!known(e.source)) err(`edge ${e.id}: source ${e.source} not found`);
     if (!known(e.target)) err(`edge ${e.id}: target ${e.target} not found`);
     if (e.gap && e.gap.findingId && !findingIds.has(e.gap.findingId)) {
