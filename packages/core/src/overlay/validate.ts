@@ -18,6 +18,9 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
   const filePaths = new Set(graph.nodes.map((n) => n.filePath).filter((p): p is string => !!p));
   const findingIds = new Set(graph.findings.map((f) => f.id));
   const candidateSignalIds = new Set(graph.candidateSignals.map((s) => s.id));
+  const assessmentNodeFindingIds = new Set<string>();
+  for (const n of graph.assessmentNodes) for (const id of n.findingIds) assessmentNodeFindingIds.add(id);
+  const reviewComplete = graph.artifact.finalFindingsSource === "agent_review" || graph.artifact.finalFindingsSource === "human_review";
   const knownEndpoint = (id: string) =>
     nodeIds.has(id) || id === "baseline" || id === "intent:UNCONFIRMED";
   const knownEvidenceRef = (ref: string) => {
@@ -55,6 +58,21 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
   // finding / candidate target integrity
   if (graph.artifact.finalFindingsSource === "agent_review_required" && graph.findings.length > 0) {
     issues.push({ level: "error", code: "FINAL_FINDING_WITHOUT_REVIEW", message: "final findings present while artifact.finalFindingsSource is agent_review_required" });
+  }
+  if (reviewComplete) {
+    if (graph.assessmentNodes.length === 0) {
+      issues.push({ level: "error", code: "REVIEWED_WITHOUT_SEMANTIC_NODES", message: "reviewed artifact requires at least one assessmentNode" });
+    }
+    for (const s of graph.candidateSignals) {
+      if (s.reviewStatus === "needs_agent_review") {
+        issues.push({ level: "error", code: "REVIEWED_PENDING_CANDIDATE", message: `candidate signal ${s.id} cannot remain needs_agent_review in a reviewed artifact` });
+      }
+    }
+    for (const f of graph.findings) {
+      if (!assessmentNodeFindingIds.has(f.id)) {
+        issues.push({ level: "error", code: "FINAL_FINDING_UNLINKED", message: `finding ${f.id} must be referenced by at least one assessmentNode` });
+      }
+    }
   }
   for (const f of graph.findings) {
     for (const t of f.targetNodeIds) {

@@ -20,6 +20,12 @@ export function RunSummary({ graph }: { graph: AssessmentGraph }) {
   const total = graph.coverage.totalNodes;
   const assessedPct = pct(assessed, total);
   const candidateSignals = graph.candidateSignals?.length ?? graph.summary.candidateSignalCount ?? 0;
+  const acceptedCandidates = (graph.candidateSignals ?? []).filter((s) => s.reviewStatus === "accepted").length;
+  const pendingCandidates = (graph.candidateSignals ?? []).filter((s) => s.reviewStatus === "needs_agent_review").length;
+  const rejectedCandidates = (graph.candidateSignals ?? []).filter((s) => s.reviewStatus === "rejected").length;
+  const candidateSummary = candidateSignals
+    ? `${candidateSignals} candidate signals: ${acceptedCandidates} accepted, ${pendingCandidates} awaiting review, ${rejectedCandidates} rejected`
+    : "0 candidate signals";
   const assessmentNodes = graph.assessmentNodes?.length ?? graph.summary.assessmentNodeCount ?? 0;
   const source = graph.artifact?.finalFindingsSource ?? "legacy";
 
@@ -52,7 +58,7 @@ export function RunSummary({ graph }: { graph: AssessmentGraph }) {
         <article className="run-card">
           <span className="run-card__label">Final findings</span>
           <strong>{graph.findings.length}</strong>
-          <span>{candidateSignals} runtime candidate signals awaiting review</span>
+          <span>{candidateSummary}</span>
         </article>
         <article className="run-card">
           <span className="run-card__label">Semantic layer</span>

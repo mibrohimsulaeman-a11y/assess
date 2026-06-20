@@ -53,6 +53,9 @@ function validate(graph) {
   const assessmentNodes = graph.assessmentNodes || [];
   const findingIds = new Set(finalFindings.map((f) => f.id));
   const candidateSignalIds = new Set(candidateSignals.map((s) => s.id));
+  const assessmentNodeFindingIds = new Set();
+  for (const n of assessmentNodes) for (const id of n.findingIds || []) assessmentNodeFindingIds.add(id);
+  const reviewComplete = graph.artifact && ["agent_review", "human_review"].includes(graph.artifact.finalFindingsSource);
   const SENTINELS = new Set(["baseline", "intent:UNCONFIRMED"]);
   const known = (id) => nodeIds.has(id) || SENTINELS.has(id);
   const knownEvidenceRef = (ref) => {
@@ -125,6 +128,19 @@ function validate(graph) {
   // 4. honesty rules
   if (graph.artifact && graph.artifact.finalFindingsSource === "agent_review_required" && finalFindings.length > 0) {
     err("final findings present even though artifact.finalFindingsSource is agent_review_required; runtime signals must remain candidateSignals");
+  }
+  if (reviewComplete) {
+    if (assessmentNodes.length === 0) err("reviewed artifact requires at least one assessmentNode");
+    for (const s of candidateSignals) {
+      if (s.reviewStatus === "needs_agent_review") {
+        err(`candidate signal ${s.id}: reviewed artifact cannot contain needs_agent_review candidates`);
+      }
+    }
+    for (const f of finalFindings) {
+      if (!assessmentNodeFindingIds.has(f.id)) {
+        err(`finding ${f.id}: reviewed artifact final finding must be referenced by at least one assessmentNode`);
+      }
+    }
   }
   for (const f of finalFindings) {
     if (f.source !== "agent_review" && f.source !== "human_review") {

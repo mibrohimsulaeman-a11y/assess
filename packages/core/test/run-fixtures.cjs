@@ -128,8 +128,29 @@ function assessmentNode(over) {
   );
 }
 
+function finalFinding(over) {
+  return finding(Object.assign({
+    id: "A-101",
+    source: "agent_review",
+    reasoningSummary: "fixture semantic review completed",
+    evidenceRefs: ["file:a.ts"],
+    counterEvidenceChecked: ["fixture counter-evidence checked"],
+    openQuestions: [],
+  }, over));
+}
+
 const cases = [
   { name: "valid-minimal", expect: "pass", mutate: (g) => g },
+  {
+    name: "valid-reviewed-minimal",
+    expect: "pass",
+    mutate: (g) => {
+      g.artifact.finalFindingsSource = "agent_review";
+      g.findings.push(finalFinding());
+      g.assessmentNodes.push(assessmentNode({ findingIds: ["A-101"], evidenceRefs: ["finding:A-101", "file:a.ts"] }));
+      return g;
+    },
+  },
   {
     name: "missing-artifact",
     expect: "fail",
@@ -260,6 +281,35 @@ const cases = [
     expect: "fail",
     mutate: (g) => {
       g.assessmentNodes.push(assessmentNode({ evidenceRefs: ["file:missing.ts"] }));
+      return g;
+    },
+  },
+
+  {
+    name: "reviewed-without-assessment-nodes",
+    expect: "fail",
+    mutate: (g) => {
+      g.artifact.finalFindingsSource = "agent_review";
+      return g;
+    },
+  },
+  {
+    name: "reviewed-with-pending-candidate",
+    expect: "fail",
+    mutate: (g) => {
+      g.artifact.finalFindingsSource = "agent_review";
+      g.assessmentNodes.push(assessmentNode());
+      g.candidateSignals.push(candidateSignal());
+      return g;
+    },
+  },
+  {
+    name: "reviewed-final-finding-unlinked",
+    expect: "fail",
+    mutate: (g) => {
+      g.artifact.finalFindingsSource = "agent_review";
+      g.findings.push(finalFinding());
+      g.assessmentNodes.push(assessmentNode({ findingIds: [] }));
       return g;
     },
   },

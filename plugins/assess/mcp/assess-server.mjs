@@ -173,6 +173,21 @@ function readGraph(graphPath) {
   return JSON.parse(fs.readFileSync(abs, "utf8"));
 }
 
+function dashboardReadiness(graph) {
+  const pendingCandidates = (graph.candidateSignals || []).filter((s) => s.reviewStatus === "needs_agent_review").length;
+  const hasSemanticNodes = (graph.assessmentNodes || []).length > 0;
+  const reviewed = graph.artifact?.finalFindingsSource === "agent_review" || graph.artifact?.finalFindingsSource === "human_review";
+  const readyForUser = reviewed && hasSemanticNodes && pendingCandidates === 0;
+  return {
+    readyForUser,
+    pendingCandidates,
+    hasSemanticNodes,
+    blockedReason: readyForUser
+      ? null
+      : "Complete semantic assessment before presenting the dashboard to the user: graph must be reviewed, contain semantic nodes, and have no pending candidate signals.",
+  };
+}
+
 function publicFinding(x) {
   return {
     id: x.id,
@@ -200,17 +215,19 @@ const handlers = {
       summary: summary.headline,
       mode: summary.hasIntent ? "intent-bound" : "baseline-only",
       outPath,
-      dashboard: graph.artifact?.finalFindingsSource === "agent_review_required"
-        ? {
-            readyForUser: false,
-            graphPath: outPath,
-            blockedReason: "Runtime graph contains candidateSignals only. Complete semantic assessment before presenting the dashboard to the user.",
-          }
-        : {
-            readyForUser: true,
-            graphPath: outPath,
-            devCommand: `ASSESS_GRAPH=${JSON.stringify(outPath)} pnpm dev:dashboard`,
-          },
+      dashboard: (() => {
+        const readiness = dashboardReadiness(graph);
+        return readiness.readyForUser
+          ? {
+              ...readiness,
+              graphPath: outPath,
+              devCommand: `ASSESS_GRAPH=${JSON.stringify(outPath)} pnpm dev:dashboard`,
+            }
+          : {
+              ...readiness,
+              graphPath: outPath,
+            };
+      })(),
       counts: {
         files: summary.files,
         nodes: summary.nodes,

@@ -27,6 +27,11 @@ function SemanticNodeCard({ node }: { node: SemanticAssessmentNode }) {
 }
 
 function CandidateSignalCard({ signal }: { signal: CandidateSignal }) {
+  const statusCopy = signal.reviewStatus === "accepted"
+    ? `Reviewed and promoted to ${signal.promotedFindingId ?? "a final finding"}.`
+    : signal.reviewStatus === "rejected"
+      ? "Reviewed and rejected; kept only as audit trace."
+      : "Runtime signal only. Agent must inspect evidence, counter-evidence, and domain intent before promoting this to a final finding.";
   return (
     <article className="semantic-card semantic-card--signal" style={candidateStyle(signal)}>
       <div className="semantic-card__head">
@@ -34,12 +39,11 @@ function CandidateSignalCard({ signal }: { signal: CandidateSignal }) {
         <code>{signal.id}</code>
         <span className="semantic-chip">{signal.direction}</span>
         <span className="semantic-chip">{signal.reviewStatus}</span>
+        {signal.promotedFindingId && <span className="semantic-chip">promoted to {signal.promotedFindingId}</span>}
       </div>
       <h3>{signal.claim}</h3>
       <p className="semantic-card__evidence">{signal.evidence.fact}</p>
-      <p className="semantic-card__meta">
-        Runtime signal only. Agent must inspect evidence, counter-evidence, and domain intent before promoting this to a final finding.
-      </p>
+      <p className="semantic-card__meta">{statusCopy}</p>
       {signal.openQuestions.length > 0 && (
         <ul className="semantic-card__questions">
           {signal.openQuestions.map((q, i) => <li key={i}>{q}</li>)}
@@ -54,6 +58,9 @@ export function SemanticGraphView({ graph }: { graph: AssessmentGraph }) {
   const candidateSignals = visibleCandidateSignals(graph, filters).sort(
     (a, b) => (SEV_RANK[b.severity] ?? 0) - (SEV_RANK[a.severity] ?? 0),
   );
+  const acceptedCandidates = (graph.candidateSignals ?? []).filter((s) => s.reviewStatus === "accepted").length;
+  const pendingCandidates = (graph.candidateSignals ?? []).filter((s) => s.reviewStatus === "needs_agent_review").length;
+  const rejectedCandidates = (graph.candidateSignals ?? []).filter((s) => s.reviewStatus === "rejected").length;
 
   return (
     <div className="semantic-view">
@@ -67,7 +74,10 @@ export function SemanticGraphView({ graph }: { graph: AssessmentGraph }) {
         <div className="semantic-hero__stats">
           <span><strong>{graph.assessmentNodes?.length ?? 0}</strong> semantic nodes</span>
           <span><strong>{graph.findings.length}</strong> final findings</span>
-          <span><strong>{graph.candidateSignals?.length ?? 0}</strong> runtime candidate signals</span>
+          <span><strong>{graph.candidateSignals?.length ?? 0}</strong> candidate signals</span>
+          <span><strong>{acceptedCandidates}</strong> accepted</span>
+          <span><strong>{pendingCandidates}</strong> awaiting review</span>
+          <span><strong>{rejectedCandidates}</strong> rejected</span>
           <span><strong>{graph.intentModel?.lifecycle ?? "none"}</strong> intent lifecycle</span>
         </div>
       </section>
@@ -90,7 +100,7 @@ export function SemanticGraphView({ graph }: { graph: AssessmentGraph }) {
       )}
 
       <section className="semantic-section">
-        <h2>Runtime candidate signals — not final findings</h2>
+        <h2>Candidate signals — review status</h2>
         {candidateSignals.length === 0 ? (
           <p className="findings__empty">No candidate signals match the current filters.</p>
         ) : (
