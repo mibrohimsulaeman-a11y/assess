@@ -23,8 +23,12 @@
     "test:fixtures": "node packages/core/test/run-fixtures.cjs && node packages/core/test/fingerprint-normalization.cjs",
     "test:mcp": "node plugins/assess/mcp/test/mcp-contract.cjs",
     "test:e2e": "node packages/core/runtime/assess-run.mjs --repo packages/core/src --intent examples/intent/assess-core.intent.json --out .assessment",
-    "test": "pnpm test:fixtures && pnpm validate:sample && pnpm test:e2e && pnpm test:mcp",
-    "ci:smoke": "pnpm test:fixtures && pnpm validate:sample && pnpm test:e2e && pnpm test:mcp"
+    "test": "pnpm test:fixtures && pnpm test:review && pnpm validate:sample && pnpm test:e2e && pnpm test:mcp",
+    "ci:smoke": "pnpm test:fixtures && pnpm test:review && pnpm validate:sample && pnpm test:e2e && pnpm test:mcp",
+    "review:init": "node packages/core/runtime/review-run.mjs init",
+    "review:apply": "node packages/core/runtime/review-run.mjs apply",
+    "review:validate": "node packages/core/runtime/review-run.mjs validate",
+    "test:review": "node packages/core/test/review-decision-fixtures.cjs"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

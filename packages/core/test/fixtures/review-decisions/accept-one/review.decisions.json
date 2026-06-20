@@ -1,0 +1,39 @@
+{
+  "decisions": [
+    {
+      "candidateSignalId": "A-001",
+      "confidence": "MED",
+      "counterEvidenceChecked": [
+        "checked related source files",
+        "checked tests",
+        "checked README/docs"
+      ],
+      "decision": "accept",
+      "finding": {
+        "claim": "Review workflow lacks an explicit counter-evidence decision gate in the assessed source.",
+        "evidenceRefs": [
+          "candidate:A-001",
+          "file:src/a.ts:1-20"
+        ],
+        "id": "A-101",
+        "openQuestions": [],
+        "reasoningSummary": "The cited source path and surrounding tests/docs do not show a completed counter-evidence decision workflow.",
+        "severity": "P2",
+        "targetNodeIds": [
+          "file:a.ts"
+        ]
+      },
+      "rationale": "The fixture source, tests, and docs support promoting this runtime signal into a final workflow finding.",
+      "semanticNode": {
+        "id": "assessment:A-001",
+        "kind": "workflow",
+        "name": "Review decision workflow gap",
+        "summary": "Semantic review confirmed that the runtime candidate represents a workflow-level assessment gap."
+      }
+    }
+  ],
+  "graphPath": "assessment-graph.runtime.json",
+  "reviewedAt": "2026-01-01T01:00:00.000Z",
+  "reviewer": "agent:assessment-reviewer",
+  "version": "1.0.0"
+}

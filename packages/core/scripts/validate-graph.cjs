@@ -149,6 +149,9 @@ function validate(graph) {
     if (!f.reasoningSummary || !(f.evidenceRefs || []).length) {
       err(`finding ${f.id}: final finding requires reasoningSummary and evidenceRefs`);
     }
+    if (!(f.counterEvidenceChecked || []).length) {
+      err(`finding ${f.id}: final finding requires counterEvidenceChecked`);
+    }
     for (const ref of f.evidenceRefs || []) {
       if (!knownEvidenceRef(ref)) err(`finding ${f.id}: evidenceRef ${ref} not found`);
     }
@@ -167,6 +170,12 @@ function validate(graph) {
     }
     if (s.reviewStatus === "accepted" && !s.promotedFindingId) {
       err(`candidate signal ${s.id}: accepted status requires promotedFindingId`);
+    }
+    if (s.reviewStatus === "rejected" && s.promotedFindingId) {
+      err(`candidate signal ${s.id}: rejected status must not have promotedFindingId`);
+    }
+    if ((s.reviewStatus === "accepted" || s.reviewStatus === "rejected") && !(s.counterEvidenceChecked || []).length) {
+      err(`candidate signal ${s.id}: reviewed status requires counterEvidenceChecked`);
     }
     if (s.promotedFindingId && !findingIds.has(s.promotedFindingId)) {
       err(`candidate signal ${s.id}: promotedFindingId ${s.promotedFindingId} not found`);

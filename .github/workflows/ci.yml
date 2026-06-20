@@ -19,6 +19,8 @@ jobs:
           node-version: 22
       - name: Run honesty fixtures
         run: node packages/core/test/run-fixtures.cjs
+      - name: Run review decision fixtures
+        run: node packages/core/test/review-decision-fixtures.cjs
       - name: Validate sample graph
         run: node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json
       - name: Engine end-to-end (self-validating atomic write)

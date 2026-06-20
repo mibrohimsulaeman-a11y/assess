@@ -86,6 +86,9 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
     if (!f.reasoningSummary || !f.evidenceRefs?.length) {
       issues.push({ level: "error", code: "FINAL_FINDING_REASONING", message: `finding ${f.id} requires reasoningSummary and evidenceRefs` });
     }
+    if (!f.counterEvidenceChecked?.length) {
+      issues.push({ level: "error", code: "FINAL_FINDING_COUNTER_EVIDENCE", message: `finding ${f.id} requires counterEvidenceChecked` });
+    }
     for (const ref of f.evidenceRefs ?? []) {
       if (!knownEvidenceRef(ref)) issues.push({ level: "error", code: "FINAL_FINDING_EVIDENCE_REF", message: `finding ${f.id} evidenceRef ${ref} not found` });
     }
@@ -107,6 +110,12 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
     }
     if (s.reviewStatus === "accepted" && !s.promotedFindingId) {
       issues.push({ level: "error", code: "CANDIDATE_ACCEPTED_WITHOUT_PROMOTION", message: `candidate signal ${s.id} accepted status requires promotedFindingId` });
+    }
+    if (s.reviewStatus === "rejected" && s.promotedFindingId) {
+      issues.push({ level: "error", code: "CANDIDATE_REJECTED_WITH_PROMOTION", message: `candidate signal ${s.id} rejected status must not have promotedFindingId` });
+    }
+    if ((s.reviewStatus === "accepted" || s.reviewStatus === "rejected") && !s.counterEvidenceChecked.length) {
+      issues.push({ level: "error", code: "CANDIDATE_REVIEW_COUNTER_EVIDENCE", message: `candidate signal ${s.id} reviewed status requires counterEvidenceChecked` });
     }
     if (s.promotedFindingId && !findingIds.has(s.promotedFindingId)) {
       issues.push({ level: "error", code: "CANDIDATE_PROMOTED_FINDING", message: `candidate signal ${s.id} promotedFindingId ${s.promotedFindingId} not found` });

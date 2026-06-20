@@ -42,8 +42,9 @@ by the dashboard. Authoritative definition: `@assess/core` (`src/types.ts` +
 |---|---|---|
 | `nodes`, `edges`, `areas`, `coverage` | runtime | deterministic facts + coverage substrate |
 | `candidateSignals` | runtime | evidence-backed signals requiring review |
+| `review.decisions.json` | agent/human review | sidecar audit trail: one decision per runtime candidate |
 | `assessmentNodes` | agent/human review | semantic capabilities, workflows, risk areas, open questions |
-| `findings` | agent/human review only | final curated verdicts |
+| `findings` | agent/human review only | final curated verdicts created from accepted decisions |
 
 ## Intent lifecycle
 
@@ -100,6 +101,34 @@ runtime-review metadata:
 Candidate signals are shown in the dashboard as fact-layer evidence. They are not
 mixed with final findings.
 
+
+## ReviewDecisionFile sidecar
+
+`review.decisions.json` is not embedded in the graph. It is the auditable input
+used to produce a reviewed graph:
+
+```jsonc
+{
+  "version": "1.0.0",
+  "graphPath": "assessment-graph.runtime.json",
+  "reviewer": "agent:assessment-reviewer",
+  "reviewedAt": "2026-01-01T01:00:00.000Z",
+  "decisions": [
+    {
+      "candidateSignalId": "A-001",
+      "decision": "accept" | "reject" | "needs_more_evidence",
+      "confidence": "HIGH" | "MED" | "LOW",
+      "rationale": "concise audit summary",
+      "counterEvidenceChecked": ["checked source", "checked tests", "checked docs"],
+      "semanticNode": { "id": "assessment:A-001", "kind": "workflow", "name": "...", "summary": "..." },
+      "finding": { "id": "A-101", "evidenceRefs": ["candidate:A-001"], "reasoningSummary": "..." }
+    }
+  ]
+}
+```
+
+Strict reviewed apply fails when any candidate remains `needs_more_evidence`.
+
 ## Final Finding
 
 A final finding must be promoted by agent/human review:
@@ -125,7 +154,7 @@ A final finding must be promoted by agent/human review:
 
 If `artifact.finalFindingsSource` is `agent_review_required`, `findings` must be
 empty. The validator rejects final findings without `source`, `reasoningSummary`,
-and `evidenceRefs`.
+`evidenceRefs`, and `counterEvidenceChecked`.
 
 ## Honesty invariants
 
@@ -136,3 +165,6 @@ and `evidenceRefs`.
 - P0/P1 cannot be based on unverifiable evidence.
 - P0 cannot be raised against `UNCONFIRMED` intent.
 - Runtime cannot publish final findings when the artifact says agent review is required.
+- Reviewed graphs require at least one `assessmentNode` and zero pending candidates.
+- Accepted candidates require `promotedFindingId`; rejected candidates must not have one.
+- Reviewed final findings require counter-evidence and assessment-node linkage.

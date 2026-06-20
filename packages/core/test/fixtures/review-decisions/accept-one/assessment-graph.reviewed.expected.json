@@ -1,0 +1,275 @@
+{
+  "areas": [
+    {
+      "coverageStatus": "assessed",
+      "description": "Files under src/",
+      "id": "area:src",
+      "name": "src",
+      "nodeIds": [
+        "file:a.ts"
+      ],
+      "worstSeverity": "P2"
+    }
+  ],
+  "artifact": {
+    "factLayerRole": "deterministic_evidence_substrate",
+    "finalFindingsSource": "agent_review",
+    "note": "Review decisions applied from agent:assessment-reviewer at 2026-01-01T01:00:00.000Z. Runtime candidate signals are preserved with accepted/rejected status; final findings are review-derived only.",
+    "runtimeSignalsAreFinalFindings": false,
+    "type": "semantic_assessment"
+  },
+  "assessmentNodes": [
+    {
+      "candidateSignalIds": [
+        "A-001"
+      ],
+      "confidence": "MED",
+      "evidenceRefs": [
+        "candidate:A-001",
+        "file:a.ts",
+        "file:src/a.ts:1-20",
+        "finding:A-101",
+        "intent:review.workflow"
+      ],
+      "findingIds": [
+        "A-101"
+      ],
+      "id": "assessment:A-001",
+      "kind": "workflow",
+      "name": "Review decision workflow gap",
+      "status": "agent_inferred",
+      "summary": "Semantic review confirmed that the runtime candidate represents a workflow-level assessment gap."
+    }
+  ],
+  "binding": {
+    "assessedAtCommit": "abc1234",
+    "generated": "2026-01-01T00:00:00.000Z",
+    "intentSpecHash": "ispec:test"
+  },
+  "candidateSignals": [
+    {
+      "binding": {
+        "assessedAtCommit": "abc1234",
+        "generated": "2026-01-01T00:00:00.000Z",
+        "intentSpecHash": "ispec:test"
+      },
+      "category": "alignment.misalignment",
+      "claim": "Review workflow candidate needs semantic confirmation",
+      "confidence": "MED",
+      "counterEvidenceChecked": [
+        "checked README/docs",
+        "checked related source files",
+        "checked tests"
+      ],
+      "direction": "intent_to_code",
+      "evidence": {
+        "fact": "src/a.ts:1-20 exports reviewWorkflow without explicit counter-evidence gate",
+        "filePath": "src/a.ts",
+        "lineRange": [
+          1,
+          20
+        ],
+        "strength": "verified"
+      },
+      "evidenceRefs": [
+        "candidate:A-001",
+        "file:a.ts",
+        "file:src/a.ts:1-20",
+        "intent:review.workflow"
+      ],
+      "explanation": "Runtime detected a deterministic intent/code signal that requires semantic review.",
+      "id": "A-001",
+      "intentRef": "intent:review.workflow",
+      "openQuestions": [],
+      "promotedFindingId": "A-101",
+      "reasoningSummary": "Runtime signal only; semantic review pending.",
+      "recommendation": "Inspect workflow source, tests, and docs before deciding.",
+      "reviewStatus": "accepted",
+      "severity": "P2",
+      "signalKind": "deterministic_gap",
+      "source": "runtime_candidate",
+      "targetNodeIds": [
+        "file:a.ts"
+      ]
+    }
+  ],
+  "coverage": {
+    "byStatus": {
+      "assessed": 1,
+      "coverage_insufficient": 0,
+      "not_assessed": 0,
+      "partial": 0
+    },
+    "gaps": [],
+    "headlineTrust": "verified",
+    "totalAreas": 1,
+    "totalNodes": 1
+  },
+  "edges": [
+    {
+      "description": "Runtime candidate gap edge",
+      "direction": "forward",
+      "gap": {
+        "candidateSignalId": "A-001",
+        "direction": "intent_to_code",
+        "findingId": "A-101",
+        "status": "misaligned"
+      },
+      "id": "edge:A-001",
+      "source": "intent:review.workflow",
+      "target": "file:a.ts",
+      "type": "intent_to_code",
+      "weight": 0.8
+    }
+  ],
+  "findings": [
+    {
+      "binding": {
+        "assessedAtCommit": "abc1234",
+        "generated": "2026-01-01T00:00:00.000Z",
+        "intentSpecHash": "ispec:test"
+      },
+      "category": "alignment.misalignment",
+      "claim": "Review workflow lacks an explicit counter-evidence decision gate in the assessed source.",
+      "confidence": "MED",
+      "counterEvidenceChecked": [
+        "checked README/docs",
+        "checked related source files",
+        "checked tests"
+      ],
+      "direction": "intent_to_code",
+      "evidence": {
+        "fact": "src/a.ts:1-20 exports reviewWorkflow without explicit counter-evidence gate",
+        "filePath": "src/a.ts",
+        "lineRange": [
+          1,
+          20
+        ],
+        "strength": "verified"
+      },
+      "evidenceRefs": [
+        "candidate:A-001",
+        "file:a.ts",
+        "file:src/a.ts:1-20",
+        "intent:review.workflow"
+      ],
+      "explanation": "Runtime detected a deterministic intent/code signal that requires semantic review.",
+      "id": "A-101",
+      "intentRef": "intent:review.workflow",
+      "openQuestions": [],
+      "reasoningSummary": "The cited source path and surrounding tests/docs do not show a completed counter-evidence decision workflow.",
+      "recommendation": "Inspect workflow source, tests, and docs before deciding.",
+      "severity": "P2",
+      "source": "agent_review",
+      "targetNodeIds": [
+        "file:a.ts"
+      ]
+    }
+  ],
+  "intentModel": {
+    "confirmedCapabilityCount": 1,
+    "entries": [
+      {
+        "id": "intent:review.workflow",
+        "label": "Review workflow",
+        "status": "confirmed_intent"
+      }
+    ],
+    "inferredCapabilityCount": 0,
+    "lifecycle": "confirmed",
+    "proposedCapabilityCount": 0,
+    "rejectedCapabilityCount": 0
+  },
+  "intents": [
+    {
+      "complexity": "simple",
+      "id": "intent:review.workflow",
+      "intentMeta": {
+        "invariant": "review decisions are explicit",
+        "status": "CONFIRMED"
+      },
+      "name": "Review workflow",
+      "summary": "Review decisions must be auditable.",
+      "tags": [
+        "intent"
+      ],
+      "type": "intent"
+    }
+  ],
+  "kind": "assessment",
+  "nodes": [
+    {
+      "assessment": {
+        "candidateSignalIds": [
+          "A-001"
+        ],
+        "coverageStatus": "assessed",
+        "findingIds": [
+          "A-101"
+        ],
+        "ownership": "owned",
+        "readiness": "partial",
+        "trust": "verified",
+        "worstSeverity": "P2"
+      },
+      "complexity": "simple",
+      "filePath": "src/a.ts",
+      "id": "file:a.ts",
+      "lineRange": [
+        1,
+        20
+      ],
+      "name": "a.ts",
+      "summary": "Fixture source file",
+      "tags": [
+        "fixture"
+      ],
+      "type": "file"
+    }
+  ],
+  "project": {
+    "analyzedAt": "2026-01-01T00:00:00.000Z",
+    "description": "runtime fixture for review decisions",
+    "frameworks": [],
+    "gitCommitHash": "abc1234",
+    "languages": [
+      "TypeScript"
+    ],
+    "name": "review-fixture"
+  },
+  "summary": {
+    "assessmentNodeCount": 1,
+    "byCategory": {
+      "alignment.misalignment": 1
+    },
+    "byDirection": {
+      "baseline_to_code": 0,
+      "code_to_intent": 0,
+      "intent_to_code": 1
+    },
+    "bySeverity": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "P3": 0
+    },
+    "candidateByCategory": {
+      "alignment.misalignment": 1
+    },
+    "candidateByDirection": {
+      "baseline_to_code": 0,
+      "code_to_intent": 0,
+      "intent_to_code": 1
+    },
+    "candidateBySeverity": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "P3": 0
+    },
+    "candidateSignalCount": 1,
+    "finalFindingCount": 1,
+    "headline": "reviewed assessment: 1 final finding(s), 1 accepted candidate(s), 0 rejected candidate(s), 0 pending candidate(s), 1 semantic node(s). Headline trust: verified."
+  },
+  "version": "3.0.0"
+}

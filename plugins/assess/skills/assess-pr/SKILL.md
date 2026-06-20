@@ -28,19 +28,23 @@ NEVER eyeball the diff and write opinions. Always go through the engine:
    evidence stays correct.
 3. Call **`validate_graph`** on the output. If validation fails, STOP and report
    the validation errors.
-4. Call **`list_findings`** for already-promoted final findings, and
-   **`list_candidate_signals`** for runtime signals awaiting semantic review.
+4. Call **`review_queue`** and **`list_candidate_signals`** for runtime signals
+   awaiting semantic review. `list_findings` may legitimately be empty on a
+   runtime-only graph.
 5. For PR runtime-only assessment, filter `candidateSignals` to changed files,
-   then review evidence/counter-evidence before promoting anything to a final
-   PR finding. `list_findings` may legitimately be empty.
+   then review evidence/counter-evidence before deciding anything.
+6. Write `review.decisions.json` with one explicit `accept`, `reject`, or
+   `needs_more_evidence` decision per relevant candidate, then call
+   **`apply_review_decisions`** and **`validate_graph`** on the reviewed graph.
+7. Any `needs_more_evidence` decision blocks user-facing report/dashboard output.
 
 ## What to output
 
-- A short verdict line: `<mode>: N final findings, M candidate signals on changed files.`
-- Final findings and runtime candidate signals in separate sections.
-- Per candidate signal: id, severity, direction, claim, evidence fact, and review status.
+- A short verdict line: `<mode>: N final findings, M accepted/rejected candidates, P pending blockers.`
+- Final findings and reviewed candidate outcomes in separate sections.
+- Per candidate signal: id, severity, direction, claim, evidence fact, decision, and review status.
 - An explicit “not assessed” note for changed areas the index could not cover.
-- No dashboard link unless semantic assessment is complete and candidate signals are reviewed.
+- No dashboard/report link unless reviewed graph validation passes and pending blockers are zero.
 
 ## Honesty rules (non-negotiable)
 
@@ -48,4 +52,5 @@ NEVER eyeball the diff and write opinions. Always go through the engine:
   downgrade to “could not confirm”.
 - Without confirmed intent, alignment signals are inferred/proposed only; do not present them as settled final findings.
 - Never raise severity above what the evidence strength allows.
-- Never show the dashboard while the graph is runtime-only (`finalFindingsSource: agent_review_required`).
+- Never show the dashboard or report while the graph is runtime-only (`finalFindingsSource: agent_review_required`).
+- Never treat a candidate as final unless it was accepted through `review.decisions.json` and applied into a reviewed graph.

@@ -10,14 +10,17 @@ The runtime may emit a `candidateSignal`. A candidate signal is deterministic
 evidence that deserves review; it is not a final finding. A final `Finding` is
 created only after agent/human semantic review checks the evidence refs, traces
 the relevant workflow, searches for counter-evidence, classifies intent lifecycle,
-and writes a concise `reasoningSummary`.
+and writes an explicit `review.decisions.json` entry. Only an `accept` decision
+can create a final finding; `reject` and `needs_more_evidence` never become
+findings.
 
 Never mix these buckets in reports:
 
 | Bucket | Meaning | Dashboard treatment |
 |---|---|---|
 | `candidateSignals` | runtime evidence substrate | fact-signal drilldown |
-| `findings` | promoted semantic verdicts | final findings view |
+| `review.decisions.json` | accept/reject/open audit trail | not rendered as findings |
+| `findings` | accepted semantic verdicts | final findings view |
 
 ---
 

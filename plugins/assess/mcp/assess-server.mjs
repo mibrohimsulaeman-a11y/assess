@@ -10,11 +10,13 @@
 //
 //   assess_repo      read repo (+optional intent) -> assessment-graph.json
 //   validate_graph   structural + honesty validation of a graph
+//   review_queue             group pending/accepted/rejected candidate signals
+//   apply_review_decisions   apply review.decisions.json -> reviewed graph
 //   list_findings            list final agent/human-reviewed findings
 //   list_candidate_signals   list deterministic runtime signals awaiting review
 //   explain_finding          full evidence + reasoning for one final finding
 //   explain_candidate_signal full deterministic evidence for one runtime signal
-//   export_report            deterministic Markdown report from a graph
+//   export_report            deterministic Markdown report from a reviewed graph
 //
 // This keeps boundaries clear: runtime tools produce facts/candidate signals;
 // agents promote only high-quality, reasoned items into final findings.
@@ -25,6 +27,12 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { assessRepo } from "../../../packages/core/runtime/engine.mjs";
+import {
+  applyReviewDecisions,
+  dashboardReadiness,
+  reviewQueue,
+  stableStringify,
+} from "../../../packages/core/runtime/review-core.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -56,6 +64,32 @@ const TOOLS = [
       type: "object",
       properties: { graphPath: { type: "string", description: "Path to assessment-graph.json." } },
       required: ["graphPath"],
+    },
+  },
+  {
+    name: "review_queue",
+    description: "Return candidate signals grouped by review status so an agent can review every runtime signal before presenting dashboard/report output.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        graphPath: { type: "string", description: "Path to a runtime or reviewed assessment graph." },
+        status: { type: "string", enum: ["needs_agent_review", "accepted", "rejected"], description: "Optional status bucket to return." },
+      },
+      required: ["graphPath"],
+    },
+  },
+  {
+    name: "apply_review_decisions",
+    description: "Apply a review.decisions.json file to a runtime graph and write a reviewed graph. Strict mode rejects unresolved candidate decisions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        graphPath: { type: "string", description: "Path to assessment-graph.runtime.json or runtime assessment-graph.json." },
+        decisionPath: { type: "string", description: "Path to review.decisions.json." },
+        outPath: { type: "string", description: "Path to write assessment-graph.reviewed.json." },
+        finalFindingsSource: { type: "string", enum: ["agent_review", "human_review"], description: "Optional override for final finding source." },
+      },
+      required: ["graphPath", "decisionPath", "outPath"],
     },
   },
   {
@@ -106,10 +140,13 @@ const TOOLS = [
   },
   {
     name: "export_report",
-    description: "Produce a deterministic Markdown assessment report (summary, coverage, findings grouped by severity) from an assessment graph.",
+    description: "Produce a deterministic Markdown assessment report from a reviewed assessment graph. Runtime-only graphs are blocked by default; pass allowRuntimeOnly only for internal debugging.",
     inputSchema: {
       type: "object",
-      properties: { graphPath: { type: "string" } },
+      properties: {
+        graphPath: { type: "string" },
+        allowRuntimeOnly: { type: "boolean", description: "Internal/debug override. Do not use for user-facing reports." },
+      },
       required: ["graphPath"],
     },
   },
@@ -173,21 +210,6 @@ function readGraph(graphPath) {
   return JSON.parse(fs.readFileSync(abs, "utf8"));
 }
 
-function dashboardReadiness(graph) {
-  const pendingCandidates = (graph.candidateSignals || []).filter((s) => s.reviewStatus === "needs_agent_review").length;
-  const hasSemanticNodes = (graph.assessmentNodes || []).length > 0;
-  const reviewed = graph.artifact?.finalFindingsSource === "agent_review" || graph.artifact?.finalFindingsSource === "human_review";
-  const readyForUser = reviewed && hasSemanticNodes && pendingCandidates === 0;
-  return {
-    readyForUser,
-    pendingCandidates,
-    hasSemanticNodes,
-    blockedReason: readyForUser
-      ? null
-      : "Complete semantic assessment before presenting the dashboard to the user: graph must be reviewed, contain semantic nodes, and have no pending candidate signals.",
-  };
-}
-
 function publicFinding(x) {
   return {
     id: x.id,
@@ -200,6 +222,33 @@ function publicFinding(x) {
     evidence: x.evidence,
     missingCodeProof: x.missingCodeProof ?? null,
   };
+}
+
+function publicCandidateSignal(x) {
+  return {
+    ...publicFinding(x),
+    source: x.source,
+    reviewStatus: x.reviewStatus,
+    signalKind: x.signalKind,
+    promotedFindingId: x.promotedFindingId ?? null,
+    evidenceRefs: x.evidenceRefs ?? [],
+    counterEvidenceChecked: x.counterEvidenceChecked ?? [],
+    openQuestions: x.openQuestions ?? [],
+  };
+}
+
+function writeJsonAtomic(filePath, value) {
+  const abs = resolveInsideProject(filePath, "outPath");
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  const tmpPath = path.join(path.dirname(abs), `.${path.basename(abs)}.${process.pid}.tmp`);
+  fs.writeFileSync(tmpPath, stableStringify(value));
+  fs.renameSync(tmpPath, abs);
+  return abs;
+}
+
+function readJsonInsideProject(filePath, label) {
+  const abs = resolveInsideProject(filePath, label);
+  return { abs, value: JSON.parse(fs.readFileSync(abs, "utf8")) };
 }
 
 // ---- tool implementations ----
@@ -255,6 +304,46 @@ const handlers = {
       findingCount: res.findingCount,
     };
   },
+  review_queue(args) {
+    const g = readGraph(args.graphPath);
+    const grouped = reviewQueue(g);
+    const selected = args.status ? { [args.status]: grouped[args.status] ?? [] } : grouped;
+    const counts = Object.fromEntries(Object.entries(grouped).map(([status, items]) => [status, items.length]));
+    return {
+      graphPath: resolveInsideProject(args.graphPath, "graphPath"),
+      artifact: g.artifact,
+      readiness: dashboardReadiness(g),
+      counts,
+      candidateSignals: Object.fromEntries(
+        Object.entries(selected).map(([status, items]) => [status, items.map(publicCandidateSignal)]),
+      ),
+    };
+  },
+  apply_review_decisions(args) {
+    const runtimeGraph = readGraph(args.graphPath);
+    const { value: decisionFile } = readJsonInsideProject(args.decisionPath, "decisionPath");
+    const reviewedGraph = applyReviewDecisions(runtimeGraph, decisionFile, {
+      finalFindingsSource: args.finalFindingsSource,
+    });
+    const mod = require(VALIDATOR);
+    const res = mod.validate(reviewedGraph);
+    if (res.errors.length) {
+      throw new Error(`reviewed graph failed validation: ${res.errors.join("; ")}`);
+    }
+    const outPath = writeJsonAtomic(args.outPath, reviewedGraph);
+    return {
+      outPath,
+      valid: true,
+      warnings: res.warnings,
+      readiness: dashboardReadiness(reviewedGraph),
+      counts: {
+        finalFindings: reviewedGraph.findings?.length ?? 0,
+        candidateSignals: reviewedGraph.candidateSignals?.length ?? 0,
+        assessmentNodes: reviewedGraph.assessmentNodes?.length ?? 0,
+      },
+      artifact: reviewedGraph.artifact,
+    };
+  },
   list_findings(args) {
     const g = readGraph(args.graphPath);
     let f = g.findings || [];
@@ -275,7 +364,7 @@ const handlers = {
     return {
       finalFindingsCount: g.findings?.length ?? 0,
       count: f.length,
-      candidateSignals: f.map(publicFinding),
+      candidateSignals: f.map(publicCandidateSignal),
     };
   },
   explain_finding(args) {
@@ -313,6 +402,10 @@ const handlers = {
   },
   export_report(args) {
     const g = readGraph(args.graphPath);
+    const readiness = dashboardReadiness(g);
+    if (!readiness.readyForUser && args.allowRuntimeOnly !== true) {
+      throw new Error(readiness.blockedReason);
+    }
     const lines = [];
     lines.push(`# Assessment report — ${g.project.name}`, "");
     lines.push(`> ${g.summary.headline}`, "");

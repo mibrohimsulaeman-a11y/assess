@@ -11,7 +11,8 @@ A final finding exists only after an agent/human semantic review pass has:
 4. checked whether the intent is observed, inferred, proposed, confirmed, or rejected,
 5. produced a concise reasoning summary,
 6. attached evidence refs and open questions,
-7. explicitly promoted the candidate into `findings`.
+7. written an explicit `review.decisions.json` entry,
+8. applied decisions into a reviewed graph where the candidate is accepted or rejected.
 
 ## Artifact split
 
@@ -20,7 +21,8 @@ A final finding exists only after an agent/human semantic review pass has:
 | `nodes`, `edges`, `areas`, `coverage` | runtime | deterministic fact layer and coverage substrate |
 | `candidateSignals` | runtime | deterministic signal requiring review; not authoritative |
 | `assessmentNodes` | agent/human review | semantic capability/workflow/risk/open-question nodes |
-| `findings` | agent/human review only | final curated verdicts |
+| `review.decisions.json` | agent/human review | explicit accept/reject/needs-more-evidence audit trail |
+| `findings` | agent/human review only | final curated verdicts created only by accepted decisions |
 
 ## Intent lifecycle
 
@@ -44,21 +46,32 @@ candidate signal
   -> trace nearby code path / workflow
   -> search for counter-evidence and by-design docs
   -> classify intent lifecycle
-  -> decide: promote | reject | keep open question
+  -> decide: accept | reject | needs_more_evidence
+  -> write review.decisions.json
+  -> apply decisions and validate reviewed graph
 ```
 
-Promoted final findings must include:
+Accepted decisions must include:
 
 ```jsonc
 {
-  "source": "agent_review" | "human_review",
-  "reasoningSummary": "concise audit summary; not hidden chain-of-thought",
-  "evidenceRefs": ["file:...", "function:...", "candidate:A-001"],
+  "candidateSignalId": "A-001",
+  "decision": "accept",
+  "confidence": "MED",
+  "rationale": "concise audit summary; not private reasoning trace",
   "counterEvidenceChecked": ["searched tests", "searched adapters", "checked docs"],
-  "openQuestions": ["..."],
-  "missingCodeProof": { "...": "required for absence-style claims" }
+  "semanticNode": { "id": "assessment:A-001", "kind": "workflow", "name": "...", "summary": "..." },
+  "finding": {
+    "id": "A-101",
+    "reasoningSummary": "concise final finding rationale",
+    "evidenceRefs": ["candidate:A-001", "file:..."],
+    "openQuestions": []
+  }
 }
 ```
+
+Rejected decisions must include a `semanticNode` and non-empty
+`counterEvidenceChecked`, but must not include `finding`.
 
 ## Quality gate
 
@@ -67,7 +80,8 @@ Reject or keep as open question when:
 - the signal is only a low-level fact with no semantic impact,
 - the code path could not be traced deeply enough,
 - counter-evidence was not checked,
+- the candidate remains `needs_more_evidence`,
 - intent is merely inferred but the claim wording says confirmed,
 - severity depends on business criticality not established by evidence.
 
-The dashboard must default to `assessmentNodes` + final `findings`. Runtime fact graph views are drilldown/debug views.
+The dashboard must default to `assessmentNodes` + final `findings`. Runtime fact graph views are drilldown/debug views. Do not present dashboard/report until every candidate is accepted or rejected and the reviewed graph validates.

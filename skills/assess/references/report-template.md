@@ -1,16 +1,19 @@
 # Assessment Artifacts
 
-Everything `assess` writes lives under `.assessment/` in the repo root. The artifacts are plain markdown so any agent or human can read them, and they get committed, so they must never contain a secret value.
+Everything `assess` writes lives under `.assessment/` in the repo root. Artifacts are plain JSON or Markdown so any agent or human can read them. If committed, they must never contain a secret value.
 
 ```
 .assessment/
-  assessment-graph.json     ← fact layer + candidateSignals + reviewed semantic layer
-  intent-spec.md            ← confirmed/proposed should-be model when available
-  knowledge-graph.md        ← optional: semantic capabilities/workflows overlay
-  report.md                 ← final findings + candidate signals kept separate
-  implementation-plan.md    ← optional: ordered plan to close the gaps (Phase 5; see implementation-plan.md)
-  baseline-debt.md          ← optional: consciously accepted gaps, with expiry
-  findings/                 ← optional: one file per finding, for large assessments
+  assessment-graph.json          ← runtime graph from assess_repo / assess-run; candidateSignals only
+  assessment-graph.runtime.json  ← optional pinned runtime input for review apply
+  review.decisions.json          ← explicit accept/reject/needs_more_evidence audit trail
+  assessment-graph.reviewed.json ← reviewed graph eligible for dashboard/report
+  intent-spec.md                 ← confirmed/proposed should-be model when available
+  knowledge-graph.md             ← optional: semantic capabilities/workflows overlay
+  report.md                      ← final findings from reviewed graph only
+  implementation-plan.md         ← optional: ordered plan to close reviewed gaps
+  baseline-debt.md               ← optional: consciously accepted gaps, with expiry
+  findings/                      ← optional: one file per reviewed finding, for large assessments
     A-001-*.md
 ```
 
@@ -34,8 +37,10 @@ generated: <YYYY-MM-DD>
 - **Runtime candidate signals** — deterministic evidence needing review; useful
   substrate but not authoritative.
 
-Do not turn candidate signals into `report.md` findings unless the review gate
-passes.
+Do not generate user-facing `report.md` from a runtime-only graph. Do not turn
+candidate signals into report findings unless `review.decisions.json` has been
+applied, every candidate is accepted or rejected, and the reviewed graph passes
+validation.
 
 ---
 
@@ -68,9 +73,10 @@ Keep `intent:` and `capability:` IDs stable — findings, the plan, and the grap
 
 ---
 
-## `report.md` — the assessment
+## `report.md` — the reviewed assessment
 
-The primary product. Two buckets, always both present, plus an honest trust line.
+The primary product. Generate it only from `assessment-graph.reviewed.json`. Two
+buckets, always both present, plus an honest trust line.
 
 ```markdown
 # Assessment Report
@@ -110,8 +116,8 @@ Ordered by (severity, direction, file). Each entry uses the Finding format from
 
 ## Considered and rejected
 
-Candidates that turned out to be by-design or unsupported by evidence, one line each,
-so they aren't re-raised next run.
+Candidates with `reviewStatus: rejected`, one line each, including the
+counter-evidence checked, so they are not re-raised next run.
 ```
 
 ---

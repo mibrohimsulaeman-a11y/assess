@@ -47,9 +47,10 @@ namespaced form.
 ```text
 Primary product:  Claude Code / tool-agent plugin  (/assess:assess, /assess:assess-pr, /assess:explain-finding)
 Core runtime:     deterministic assessment engine + validator + scanner
-Interop surface:  MCP server  (assess_repo, validate_graph, list_findings,
+Interop surface:  MCP server  (assess_repo, validate_graph, review_queue,
+                               apply_review_decisions, list_findings,
                                explain_finding, export_report)
-Optional:         tiny CLI shim for CI/debug only (assess-run.mjs)
+Optional:         tiny CLI shims for CI/debug only (assess-run.mjs, review-run.mjs)
 ```
 
 The agent never judges your code freely. It calls the deterministic boundary:
@@ -74,7 +75,8 @@ the typed helper modules:
   is installed.
 - **`plugins/assess/mcp/assess-server.mjs`**: a zero-dependency MCP server
   (JSON-RPC over stdio) exposing `assess_repo`, `validate_graph`,
-  `list_findings`, `explain_finding`, `export_report`.
+  `review_queue`, `apply_review_decisions`, `list_findings`,
+  `explain_finding`, and `export_report`.
 - **`plugins/assess/`**: Claude Code plugin surfaces — commands (`/assess:assess`,
   `/assess:assess-pr`, `/assess:explain-finding`), skills, agents, and hooks.
 - `@assess/dashboard`: a React/ReactFlow dashboard whose default view is the
@@ -113,9 +115,12 @@ assess/
         assess/                     # typed gap helpers, missing-code proof, severity, coverage
         overlay/                    # assemble + validate honesty gates
       runtime/engine.mjs            # zero-dep headless engine (scan -> graph -> validate)
-      runtime/assess-run.mjs        # optional CLI shim (CI/debug only)
+      runtime/assess-run.mjs        # optional scan CLI shim (CI/debug only)
+      runtime/review-core.mjs       # zero-dep review decision apply engine
+      runtime/review-run.mjs        # optional review init/apply/validate CLI shim
       scripts/validate-graph.cjs    # dependency-free graph validator
       test/run-fixtures.cjs         # zero-dep negative fixture suite
+      test/review-decision-fixtures.cjs # review decision workflow fixtures
     dashboard/                      # @assess/dashboard — React + ReactFlow gap map
       src/graph/                    # CoverageMapView, GapGraphView, FindingsView
       public/assessment-graph.json  # runnable sample graph; generated runs can be served with ASSESS_GRAPH
@@ -166,24 +171,46 @@ artifacts only.
 
 ## Quick start
 
-Validate the sample graph and honesty fixtures without installing dependencies:
+Validate the sample graph, honesty fixtures, and review workflow fixtures without installing dependencies:
 
 ```bash
 node packages/core/test/run-fixtures.cjs
+node packages/core/test/review-decision-fixtures.cjs
 node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json
 ```
 
-Run the headless engine against a real repo (no install needed), in both modes:
+Run the headless engine against a real repo (no install needed), in both modes.
+This produces a runtime graph with `candidateSignals`; it is not user-facing yet.
 
 ```bash
 # baseline-only (no confirmed intent): honest "partial" coverage
 node packages/core/runtime/assess-run.mjs --repo packages/core/src --out .assessment
 
-# intent-bound: three gap directions, evidence-bound findings
+# intent-bound: three gap directions, evidence-bound runtime candidate signals
 node packages/core/runtime/assess-run.mjs \
   --repo packages/core/src \
   --intent examples/intent/assess-core.intent.json \
   --out .assessment
+```
+
+Apply the review decision workflow before showing a dashboard or report:
+
+```bash
+cp .assessment/assessment-graph.json .assessment/assessment-graph.runtime.json
+
+node packages/core/runtime/review-run.mjs init \
+  --graph .assessment/assessment-graph.runtime.json \
+  --out .assessment/review.decisions.json
+
+# Edit review.decisions.json: accept/reject every candidate after source review.
+
+node packages/core/runtime/review-run.mjs apply \
+  --graph .assessment/assessment-graph.runtime.json \
+  --decisions .assessment/review.decisions.json \
+  --out .assessment/assessment-graph.reviewed.json
+
+node packages/core/runtime/review-run.mjs validate \
+  --graph .assessment/assessment-graph.reviewed.json
 ```
 
 Install as a Claude Code plugin to give your coding agent an evidence-bound
@@ -198,14 +225,13 @@ pnpm validate:sample
 pnpm dev:dashboard
 ```
 
-Open the dashboard against a graph produced by a real assessment run:
+Open the dashboard only against a reviewed graph:
 
 ```bash
-node packages/core/runtime/assess-run.mjs --repo packages/core/src --out .assessment
-ASSESS_GRAPH="$(pwd)/.assessment/assessment-graph.json" pnpm dev:dashboard
+ASSESS_GRAPH="$(pwd)/.assessment/assessment-graph.reviewed.json" pnpm dev:dashboard
 ```
 
-When `ASSESS_GRAPH` is set, the dev server exposes that generated graph as `/__assessment_graph__`, so the dashboard shows the exact artifact emitted by the assessment process.
+When `ASSESS_GRAPH` is set, the dev server exposes that generated graph as `/__assessment_graph__`. A runtime-only graph is acceptable for internal debugging, but should not be presented to users until review decisions are applied and validation passes.
 
 Build all packages:
 
@@ -236,11 +262,29 @@ The skill contract is present in `skills/assess/SKILL.md`.
 
 ---
 
+## Review decision workflow
+
+Runtime output is intentionally incomplete: `candidateSignals` are evidence-backed
+signals, not final findings. The review workflow makes promotion auditable:
+
+1. run `assess_repo` / `assess-run.mjs` to create a runtime graph;
+2. inspect source, tests, docs, and counter-evidence for every candidate;
+3. write `review.decisions.json`;
+4. apply decisions with `review-run.mjs apply` or MCP `apply_review_decisions`;
+5. validate the reviewed graph;
+6. only then show dashboard/report.
+
+MCP exposes `review_queue` to group pending/accepted/rejected candidates.
+`export_report` blocks runtime-only graphs by default.
+
+---
+
 ## Dashboard views
 
-The dashboard is the post-run cockpit for the generated `assessment-graph.json`.
-It starts with the semantic layer, then exposes deterministic evidence as
-drilldown:
+The dashboard is the post-review cockpit for a validated reviewed graph. It starts
+with the semantic layer, then exposes deterministic evidence as drilldown. Do not
+present it for a runtime-only graph where `finalFindingsSource` is
+`agent_review_required` or any candidate remains `needs_agent_review`.
 
 - **Semantic assessment** — curated semantic nodes and final findings. Runtime-only runs show why agent review is still required.
 - **Final findings** — agent/human-reviewed verdicts only.
