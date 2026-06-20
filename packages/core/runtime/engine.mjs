@@ -542,9 +542,9 @@ export function assessRepo(opts) {
     }
   }
 
-  // ENGINE: deterministic signal generation. These are NOT final findings.
+  // ENGINE: deterministic signal generation. These drafts are NOT final findings.
   // Final findings must be promoted by an agent/human semantic review layer.
-  const findings = [];
+  const candidateSignalDrafts = [];
   const gapEdges = [];
   let seq = { A: 0, C: 0, Q: 0 };
   const nextId = (p) => `${p}-${String((seq[p] += 1)).padStart(3, "0")}`;
@@ -558,7 +558,7 @@ export function assessRepo(opts) {
     for (const v of obs.baselineViolations) {
       const dec = resolveSeverity({ ruleSeverity: v.ruleSeverity, evidenceStrength: "verified", confidence: "HIGH", securitySensitive: v.securitySensitive });
       const id = nextId(v.category === "quality" ? "Q" : "C");
-      findings.push({
+      candidateSignalDrafts.push({
         id, direction: "baseline_to_code", category: v.category, claim: v.rule,
         evidence: { fact: v.fact, strength: "verified", filePath: obs.span.filePath, lineRange: obs.span.lineRange },
         severity: dec.severity, confidence: "HIGH",
@@ -616,7 +616,7 @@ export function assessRepo(opts) {
           if (category) {
             const dec = resolveSeverity({ ruleSeverity, evidenceStrength: "inferred", confidence: "MED", securitySensitive: p.securitySensitive, missingCodeResult: proof?.result });
             findingId = nextId("A");
-            findings.push({
+            candidateSignalDrafts.push({
               id: findingId, direction: "intent_to_code", category,
               claim: `Promised "${p.label || p.id}" has no implementing path found in the index`,
               evidence: { fact: `expected component ${compId} not present in index`, strength: "inferred", signals: p.invariant ? [`invariant: ${p.invariant}`] : undefined },
@@ -656,7 +656,7 @@ export function assessRepo(opts) {
       });
       const dec = resolveSeverity({ ruleSeverity: "P2", evidenceStrength: "verified", confidence: "MED", intentUnconfirmed: true });
       const id = nextId("A");
-      findings.push({
+      candidateSignalDrafts.push({
         id, direction: "code_to_intent", category: "alignment.unexplained",
         claim: "Significant exported component has no confirmed intent mapping in the supplied intent spec",
         evidence: { fact: obs.evidenceFact, strength: "verified", filePath: obs.span.filePath, lineRange: obs.span.lineRange },
@@ -676,14 +676,14 @@ export function assessRepo(opts) {
   }
 
   // ASSEMBLE
-  const findingsByNode = new Map();
-  for (const f of findings) for (const nid of f.targetNodeIds) {
-    if (!findingsByNode.has(nid)) findingsByNode.set(nid, []);
-    findingsByNode.get(nid).push(f);
+  const signalsByNode = new Map();
+  for (const f of candidateSignalDrafts) for (const nid of f.targetNodeIds) {
+    if (!signalsByNode.has(nid)) signalsByNode.set(nid, []);
+    signalsByNode.get(nid).push(f);
   }
 
   const stampedNodes = componentNodes.map((node) => {
-    const nf = findingsByNode.get(node.id) ?? [];
+    const nf = signalsByNode.get(node.id) ?? [];
     const worst = worstSeverity(nf.map((f) => f.severity));
     const reason = notAssessed.get(node.id);
     let coverageStatus = "assessed";
@@ -723,7 +723,7 @@ export function assessRepo(opts) {
     return { ...area, coverageStatus: status, worstSeverity: sev };
   });
 
-  const candidateSignals = findings.map(toCandidateSignal);
+  const candidateSignals = candidateSignalDrafts.map(toCandidateSignal);
   const finalFindings = [];
   const assessmentNodes = [];
   const coverage = buildCoverageManifest(stampedNodes, areas, candidateSignals, nodeMap);
@@ -792,7 +792,8 @@ function evidenceRefsFor(signal) {
   const refs = new Set();
   refs.add(`candidate:${signal.id}`);
   for (const id of signal.targetNodeIds || []) refs.add(id);
-  if (signal.intentRef) refs.add(`intent:${signal.intentRef}`);
+  if (signal.intentRef === "UNCONFIRMED") refs.add("intent:UNCONFIRMED");
+  else if (signal.intentRef) refs.add(signal.intentRef.startsWith("intent:") ? signal.intentRef : `intent:${signal.intentRef}`);
   if (signal.evidence?.filePath) {
     const range = signal.evidence.lineRange ? `:${signal.evidence.lineRange[0]}-${signal.evidence.lineRange[1]}` : "";
     refs.add(`file:${signal.evidence.filePath}${range}`);

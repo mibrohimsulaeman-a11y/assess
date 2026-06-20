@@ -19,7 +19,7 @@ const BINDING = { assessedAtCommit: "abc1234", intentSpecHash: "ispec:test", gen
 
 function base() {
   return {
-    version: "2.0.0",
+    version: "3.0.0",
     kind: "assessment",
     binding: { ...BINDING },
     project: { name: "fixture", languages: ["TypeScript"], frameworks: [], description: "fixture", analyzedAt: "2026-01-01T00:00:00Z", gitCommitHash: "abc1234" },
@@ -96,8 +96,64 @@ function finding(over) {
   );
 }
 
+function candidateSignal(over) {
+  return Object.assign(
+    {
+      ...finding({ id: "A-001" }),
+      source: "runtime_candidate",
+      reviewStatus: "needs_agent_review",
+      signalKind: "deterministic_gap",
+      evidenceRefs: ["candidate:A-001", "file:a.ts"],
+      counterEvidenceChecked: ["fixture checked deterministic substrate"],
+      openQuestions: ["semantic review required"],
+    },
+    over,
+  );
+}
+
+function assessmentNode(over) {
+  return Object.assign(
+    {
+      id: "assessment:node-1",
+      kind: "risk_area",
+      name: "Fixture risk",
+      summary: "Fixture semantic node",
+      status: "agent_inferred",
+      confidence: "MED",
+      evidenceRefs: ["file:a.ts"],
+      candidateSignalIds: [],
+      findingIds: [],
+    },
+    over,
+  );
+}
+
 const cases = [
   { name: "valid-minimal", expect: "pass", mutate: (g) => g },
+  {
+    name: "missing-artifact",
+    expect: "fail",
+    mutate: (g) => {
+      delete g.artifact;
+      return g;
+    },
+  },
+  {
+    name: "missing-intent-model",
+    expect: "fail",
+    mutate: (g) => {
+      delete g.intentModel;
+      return g;
+    },
+  },
+  {
+    name: "bad-artifact-runtime-signals-final",
+    expect: "fail",
+    mutate: (g) => {
+      g.artifact.runtimeSignalsAreFinalFindings = true;
+      return g;
+    },
+  },
   {
     name: "absent-without-proof",
     expect: "fail",
@@ -141,15 +197,7 @@ const cases = [
     name: "runtime-signal-without-proof",
     expect: "fail",
     mutate: (g) => {
-      g.candidateSignals.push({
-        ...finding({ category: "alignment.missing", claim: "no implementing code", severity: "P2" }),
-        source: "runtime_candidate",
-        reviewStatus: "needs_agent_review",
-        signalKind: "deterministic_gap",
-        evidenceRefs: ["file:a.ts"],
-        counterEvidenceChecked: [],
-        openQuestions: ["agent review required"],
-      });
+      g.candidateSignals.push(candidateSignal({ category: "alignment.missing", claim: "no implementing code", severity: "P2" }));
       return g;
     },
   },
@@ -187,6 +235,48 @@ const cases = [
       g.coverage.byStatus.assessed = 0;
       g.coverage.byStatus.not_assessed = 1;
       g.coverage.gaps = [];
+      return g;
+    },
+  },
+
+  {
+    name: "dangling-assessment-node-candidate-signal",
+    expect: "fail",
+    mutate: (g) => {
+      g.assessmentNodes.push(assessmentNode({ candidateSignalIds: ["A-404"] }));
+      return g;
+    },
+  },
+  {
+    name: "dangling-assessment-node-finding",
+    expect: "fail",
+    mutate: (g) => {
+      g.assessmentNodes.push(assessmentNode({ findingIds: ["A-404"] }));
+      return g;
+    },
+  },
+  {
+    name: "dangling-assessment-node-evidence-ref",
+    expect: "fail",
+    mutate: (g) => {
+      g.assessmentNodes.push(assessmentNode({ evidenceRefs: ["file:missing.ts"] }));
+      return g;
+    },
+  },
+  {
+    name: "accepted-candidate-without-promoted-finding",
+    expect: "fail",
+    mutate: (g) => {
+      g.artifact.finalFindingsSource = "agent_review";
+      g.candidateSignals.push(candidateSignal({ reviewStatus: "accepted" }));
+      return g;
+    },
+  },
+  {
+    name: "runtime-only-candidate-with-promoted-finding-id",
+    expect: "fail",
+    mutate: (g) => {
+      g.candidateSignals.push(candidateSignal({ promotedFindingId: "A-999" }));
       return g;
     },
   },

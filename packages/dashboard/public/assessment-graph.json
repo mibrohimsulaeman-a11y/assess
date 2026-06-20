@@ -2,9 +2,9 @@
   "version": "3.0.0",
   "kind": "assessment",
   "binding": {
-    "assessedAtCommit": "0f009ad",
+    "assessedAtCommit": "dc64f27",
     "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-    "generated": "2026-06-20T00:01:18.116Z"
+    "generated": "2026-06-20T00:27:13.268Z"
   },
   "project": {
     "name": "src",
@@ -13,8 +13,8 @@
     ],
     "frameworks": [],
     "description": "semantic assessment shell: confirmed intent supplied; runtime emitted candidate signals for agent review",
-    "analyzedAt": "2026-06-20T00:01:18.116Z",
-    "gitCommitHash": "0f009ad"
+    "analyzedAt": "2026-06-20T00:27:13.268Z",
+    "gitCommitHash": "dc64f27"
   },
   "artifact": {
     "type": "semantic_assessment",
@@ -65,6 +65,49 @@
   "assessmentNodes": [],
   "candidateSignals": [
     {
+      "id": "Q-001",
+      "direction": "baseline_to_code",
+      "category": "quality",
+      "claim": "oversized function (low maintainability)",
+      "evidence": {
+        "fact": "overlay/validate.ts:15-136 is 122 lines long",
+        "strength": "verified",
+        "filePath": "overlay/validate.ts",
+        "lineRange": [
+          15,
+          136
+        ]
+      },
+      "severity": "P3",
+      "confidence": "HIGH",
+      "explanation": "Deterministic baseline rule violation.",
+      "recommendation": "Fix to restore the engineering baseline.",
+      "targetNodeIds": [
+        "function:overlay/validate.ts:validateAssessmentGraph"
+      ],
+      "binding": {
+        "assessedAtCommit": "dc64f27",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:27:13.268Z",
+        "spanSha256": "sha256:1cc8b16789aef8ab5ee986af6de31bce330a3b26d4789e0e6395fa1ad76cf356",
+        "normalizedFingerprint": "nfp:b48d085d0e4f639f10ba427ef976191b04f253a076b95e0316c8ea72c202798f"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "baseline_signal",
+      "evidenceRefs": [
+        "candidate:Q-001",
+        "function:overlay/validate.ts:validateAssessmentGraph",
+        "file:overlay/validate.ts:15-136"
+      ],
+      "counterEvidenceChecked": [
+        "deterministic fact layer only; no semantic agent counter-evidence pass has run"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
       "id": "A-001",
       "direction": "intent_to_code",
       "category": "alignment.missing",
@@ -108,9 +151,9 @@
         "intent:coverage-manifest.reconcile-spans"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -118,8 +161,7 @@
       "evidenceRefs": [
         "candidate:A-001",
         "function:overlay/reconcile.ts:reconcilePriorRun",
-        "intent:coverage-manifest.reconcile-spans",
-        "intent:intent:coverage-manifest.reconcile-spans"
+        "intent:coverage-manifest.reconcile-spans"
       ],
       "counterEvidenceChecked": [
         "searched roots: .",
@@ -175,9 +217,9 @@
         "function:assess/coverage.ts:areaCoverage"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -242,9 +284,9 @@
         "function:assess/gap-engine.ts:assessIntentToCode"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -309,9 +351,9 @@
         "function:assess/gap-engine.ts:assessCodeToIntent"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -376,9 +418,9 @@
         "function:assess/gap-engine.ts:assessBaseline"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -443,9 +485,9 @@
         "function:assess/missing-code-proof.ts:absenceWording"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -510,9 +552,9 @@
         "function:assess/severity.ts:headlineTrust"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -577,9 +619,9 @@
         "function:fact-layer/fingerprint.ts:bindSpan"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -644,9 +686,9 @@
         "function:fact-layer/fingerprint.ts:reconcileSpan"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -711,9 +753,9 @@
         "function:fact-layer/index-builder.ts:deriveOwnership"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -778,9 +820,9 @@
         "function:fact-layer/index-builder.ts:toGraphNode"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -845,9 +887,9 @@
         "function:fact-layer/index-builder.ts:toGraphEdge"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -912,9 +954,9 @@
         "function:fact-layer/scan.ts:partitionAreas"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -979,9 +1021,9 @@
         "function:fact-layer/scan.ts:buildScanResult"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -1046,9 +1088,9 @@
         "function:intent/intent-spec.ts:hashIntentSpec"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -1113,9 +1155,9 @@
         "function:intent/intent-spec.ts:intentNodes"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -1180,9 +1222,9 @@
         "function:intent/intent-spec.ts:toExpectations"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -1247,9 +1289,9 @@
         "function:overlay/assemble.ts:assembleGraph"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -1275,12 +1317,12 @@
       "category": "alignment.unexplained",
       "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
       "evidence": {
-        "fact": "overlay/validate.ts:15-64 function validateAssessmentGraph",
+        "fact": "overlay/validate.ts:15-136 function validateAssessmentGraph",
         "strength": "verified",
         "filePath": "overlay/validate.ts",
         "lineRange": [
           15,
-          64
+          136
         ]
       },
       "intentRef": "UNCONFIRMED",
@@ -1314,9 +1356,9 @@
         "function:overlay/validate.ts:validateAssessmentGraph"
       ],
       "binding": {
-        "assessedAtCommit": "0f009ad",
+        "assessedAtCommit": "dc64f27",
         "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-20T00:01:18.116Z"
+        "generated": "2026-06-20T00:27:13.268Z"
       },
       "source": "runtime_candidate",
       "reviewStatus": "needs_agent_review",
@@ -1325,7 +1367,7 @@
         "candidate:A-019",
         "function:overlay/validate.ts:validateAssessmentGraph",
         "intent:UNCONFIRMED",
-        "file:overlay/validate.ts:15-64"
+        "file:overlay/validate.ts:15-136"
       ],
       "counterEvidenceChecked": [
         "searched roots: .",
@@ -2606,7 +2648,7 @@
       "type": "file",
       "name": "validate.ts",
       "filePath": "overlay/validate.ts",
-      "summary": "TypeScript file, 92 lines, 4 symbol(s)",
+      "summary": "TypeScript file, 164 lines, 5 symbol(s)",
       "tags": [],
       "complexity": "simple",
       "assessment": {
@@ -2625,18 +2667,19 @@
       "filePath": "overlay/validate.ts",
       "lineRange": [
         15,
-        64
+        136
       ],
-      "summary": "function validateAssessmentGraph (50 lines, exported)",
+      "summary": "function validateAssessmentGraph (122 lines, exported)",
       "tags": [
         "exported"
       ],
-      "complexity": "moderate",
+      "complexity": "complex",
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
         "candidateSignalIds": [
+          "Q-001",
           "A-019"
         ],
         "readiness": "partial",
@@ -2650,10 +2693,33 @@
       "name": "knownEndpoint",
       "filePath": "overlay/validate.ts",
       "lineRange": [
-        22,
-        24
+        21,
+        34
       ],
-      "summary": "function knownEndpoint (3 lines)",
+      "summary": "function knownEndpoint (14 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "candidateSignalIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
+      "id": "function:overlay/validate.ts:knownEvidenceRef",
+      "type": "function",
+      "name": "knownEvidenceRef",
+      "filePath": "overlay/validate.ts",
+      "lineRange": [
+        23,
+        34
+      ],
+      "summary": "function knownEvidenceRef (12 lines)",
       "tags": [
         "internal"
       ],
@@ -2673,8 +2739,8 @@
       "name": "honestyChecks",
       "filePath": "overlay/validate.ts",
       "lineRange": [
-        66,
-        87
+        138,
+        159
       ],
       "summary": "function honestyChecks (22 lines)",
       "tags": [
@@ -2696,8 +2762,8 @@
       "name": "hasErrors",
       "filePath": "overlay/validate.ts",
       "lineRange": [
-        89,
-        91
+        161,
+        163
       ],
       "summary": "function hasErrors (3 lines, exported)",
       "tags": [
@@ -3241,7 +3307,18 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "overlay/validate.ts:22 declares knownEndpoint"
+        "fact": "overlay/validate.ts:21 declares knownEndpoint"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/validate.ts->function:overlay/validate.ts:knownEvidenceRef",
+      "source": "file:overlay/validate.ts",
+      "target": "function:overlay/validate.ts:knownEvidenceRef",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/validate.ts:23 declares knownEvidenceRef"
       }
     },
     {
@@ -3252,7 +3329,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "overlay/validate.ts:66 declares honestyChecks"
+        "fact": "overlay/validate.ts:138 declares honestyChecks"
       }
     },
     {
@@ -3263,7 +3340,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "overlay/validate.ts:89 declares hasErrors"
+        "fact": "overlay/validate.ts:161 declares hasErrors"
       }
     },
     {
@@ -3396,6 +3473,22 @@
       "weight": 0.8,
       "evidence": {
         "fact": "overlay/validate.ts imports ../types.js"
+      }
+    },
+    {
+      "id": "gap:baseline_to_code:Q-001:baseline->function:overlay/validate.ts:validateAssessmentGraph",
+      "source": "baseline",
+      "target": "function:overlay/validate.ts:validateAssessmentGraph",
+      "type": "baseline_to_code",
+      "direction": "forward",
+      "weight": 0.9,
+      "gap": {
+        "direction": "baseline_to_code",
+        "status": "violation",
+        "candidateSignalId": "Q-001"
+      },
+      "evidence": {
+        "fact": "oversized function (low maintainability)"
       }
     },
     {
@@ -3892,6 +3985,7 @@
         "file:overlay/validate.ts",
         "function:overlay/validate.ts:validateAssessmentGraph",
         "function:overlay/validate.ts:knownEndpoint",
+        "function:overlay/validate.ts:knownEvidenceRef",
         "function:overlay/validate.ts:honestyChecks",
         "function:overlay/validate.ts:hasErrors"
       ],
@@ -3901,9 +3995,9 @@
   ],
   "coverage": {
     "totalAreas": 5,
-    "totalNodes": 59,
+    "totalNodes": 60,
     "byStatus": {
-      "assessed": 58,
+      "assessed": 59,
       "partial": 0,
       "not_assessed": 1,
       "coverage_insufficient": 0
@@ -3934,20 +4028,21 @@
       "P0": 0,
       "P1": 0,
       "P2": 19,
-      "P3": 0
+      "P3": 1
     },
     "candidateByCategory": {
+      "quality": 1,
       "alignment.missing": 1,
       "alignment.unexplained": 18
     },
     "candidateByDirection": {
       "intent_to_code": 1,
       "code_to_intent": 18,
-      "baseline_to_code": 0
+      "baseline_to_code": 1
     },
-    "candidateSignalCount": 19,
+    "candidateSignalCount": 20,
     "finalFindingCount": 0,
     "assessmentNodeCount": 0,
-    "headline": "intent-bound fact layer: scanned 13 code files / 58 fact nodes; runtime produced 19 candidate signal(s) and 0 final finding(s). Agent semantic review is required before dashboard findings become authoritative (headline trust: inferred)."
+    "headline": "intent-bound fact layer: scanned 13 code files / 59 fact nodes; runtime produced 20 candidate signal(s) and 0 final finding(s). Agent semantic review is required before dashboard findings become authoritative (headline trust: inferred)."
   }
 }

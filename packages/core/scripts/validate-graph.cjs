@@ -24,19 +24,49 @@ function validate(graph) {
   const err = (m) => errors.push(m);
 
   // 1. shape
-  for (const key of ["version", "kind", "binding", "project", "nodes", "edges", "findings", "areas", "coverage", "summary"]) {
+  for (const key of [
+    "version", "kind", "binding", "project", "artifact", "intentModel",
+    "assessmentNodes", "candidateSignals", "intents", "nodes", "edges",
+    "findings", "areas", "coverage", "summary",
+  ]) {
     if (!(key in graph)) err(`missing top-level key: ${key}`);
   }
+  if (graph.version !== "3.0.0") err(`version must be "3.0.0", got ${JSON.stringify(graph.version)}`);
   if (graph.kind !== "assessment") err(`kind must be "assessment", got ${JSON.stringify(graph.kind)}`);
+  if (!graph.artifact || graph.artifact.type !== "semantic_assessment") err("artifact.type must be semantic_assessment");
+  if (graph.artifact && graph.artifact.factLayerRole !== "deterministic_evidence_substrate") err("artifact.factLayerRole must be deterministic_evidence_substrate");
+  if (graph.artifact && graph.artifact.runtimeSignalsAreFinalFindings !== false) err("artifact.runtimeSignalsAreFinalFindings must be false");
+  if (graph.artifact && !["agent_review_required", "agent_review", "human_review"].includes(graph.artifact.finalFindingsSource)) {
+    err(`artifact.finalFindingsSource is invalid: ${JSON.stringify(graph.artifact.finalFindingsSource)}`);
+  }
+  if (!graph.intentModel || !["none", "inferred", "proposed", "confirmed", "mixed"].includes(graph.intentModel.lifecycle)) {
+    err("intentModel.lifecycle is missing or invalid");
+  }
+  if (!Array.isArray(graph.assessmentNodes)) err("assessmentNodes must be an array");
+  if (!Array.isArray(graph.candidateSignals)) err("candidateSignals must be an array");
 
   const allNodes = [...(graph.nodes || []), ...(graph.intents || [])];
   const nodeIds = new Set(allNodes.map((n) => n.id));
+  const filePaths = new Set((graph.nodes || []).map((n) => n.filePath).filter(Boolean));
   const finalFindings = graph.findings || [];
   const candidateSignals = graph.candidateSignals || [];
+  const assessmentNodes = graph.assessmentNodes || [];
   const findingIds = new Set(finalFindings.map((f) => f.id));
   const candidateSignalIds = new Set(candidateSignals.map((s) => s.id));
   const SENTINELS = new Set(["baseline", "intent:UNCONFIRMED"]);
   const known = (id) => nodeIds.has(id) || SENTINELS.has(id);
+  const knownEvidenceRef = (ref) => {
+    if (typeof ref !== "string" || ref.length === 0) return false;
+    if (known(ref) || findingIds.has(ref) || candidateSignalIds.has(ref)) return true;
+    if (ref.startsWith("candidate:")) return candidateSignalIds.has(ref.slice("candidate:".length));
+    if (ref.startsWith("finding:")) return findingIds.has(ref.slice("finding:".length));
+    if (ref.startsWith("file:")) {
+      const body = ref.slice("file:".length);
+      for (const fp of filePaths) if (body === fp || body.startsWith(`${fp}:`)) return true;
+      return false;
+    }
+    return false;
+  };
 
   // 2. referential integrity
   const seenEdgeIds = new Set();
@@ -66,6 +96,17 @@ function validate(graph) {
       if (!known(t)) err(`candidate signal ${s.id}: target ${t} not found`);
     }
   }
+  for (const n of assessmentNodes) {
+    for (const id of n.candidateSignalIds || []) {
+      if (!candidateSignalIds.has(id)) err(`assessmentNode ${n.id}: candidate signal ${id} not found`);
+    }
+    for (const id of n.findingIds || []) {
+      if (!findingIds.has(id)) err(`assessmentNode ${n.id}: finding ${id} not found`);
+    }
+    for (const ref of n.evidenceRefs || []) {
+      if (!knownEvidenceRef(ref)) err(`assessmentNode ${n.id}: evidenceRef ${ref} not found`);
+    }
+  }
 
   // 3. coverage completeness
   const assessable = (graph.nodes || []).filter((n) => n.type !== "intent" && n.type !== "capability");
@@ -91,6 +132,31 @@ function validate(graph) {
     }
     if (!f.reasoningSummary || !(f.evidenceRefs || []).length) {
       err(`finding ${f.id}: final finding requires reasoningSummary and evidenceRefs`);
+    }
+    for (const ref of f.evidenceRefs || []) {
+      if (!knownEvidenceRef(ref)) err(`finding ${f.id}: evidenceRef ${ref} not found`);
+    }
+  }
+  for (const s of candidateSignals) {
+    if (!["needs_agent_review", "accepted", "rejected"].includes(s.reviewStatus)) {
+      err(`candidate signal ${s.id}: invalid reviewStatus ${JSON.stringify(s.reviewStatus)}`);
+    }
+    if (graph.artifact && graph.artifact.finalFindingsSource === "agent_review_required") {
+      if (s.reviewStatus !== "needs_agent_review") {
+        err(`candidate signal ${s.id}: reviewStatus must remain needs_agent_review when finalFindingsSource is agent_review_required`);
+      }
+      if (s.promotedFindingId) {
+        err(`candidate signal ${s.id}: promotedFindingId is not allowed when finalFindingsSource is agent_review_required`);
+      }
+    }
+    if (s.reviewStatus === "accepted" && !s.promotedFindingId) {
+      err(`candidate signal ${s.id}: accepted status requires promotedFindingId`);
+    }
+    if (s.promotedFindingId && !findingIds.has(s.promotedFindingId)) {
+      err(`candidate signal ${s.id}: promotedFindingId ${s.promotedFindingId} not found`);
+    }
+    for (const ref of s.evidenceRefs || []) {
+      if (!knownEvidenceRef(ref)) err(`candidate signal ${s.id}: evidenceRef ${ref} not found`);
     }
   }
   for (const f of [...finalFindings, ...candidateSignals]) {

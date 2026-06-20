@@ -24,26 +24,26 @@ NEVER eyeball the diff and write opinions. Always go through the engine:
 
 1. Resolve the changed files (`git diff --name-only <base>...<head>`).
 2. Call the MCP tool **`assess_repo`** with `repoRoot` = repo root and, when
-   available, `intentSpecPath`. (The engine scans the whole index so cross-file
-   edges stay correct; you then filter findings to the touched files/areas.)
+   available, `intentSpecPath`. The engine scans the whole index so cross-file
+   evidence stays correct.
 3. Call **`validate_graph`** on the output. If validation fails, STOP and report
-   the validation errors — do not present unvalidated findings.
-4. Call **`list_findings`** and keep only findings whose `targetNodeIds` touch a
-   changed file. Sort by severity (P0→P3).
-5. For each kept finding, surface `evidence.fact` and, for any `missing`
-   finding, the `missingCodeProof.result`. If a finding lacks deterministic
-   evidence or a bounded proof, do not report it.
+   the validation errors.
+4. Call **`list_findings`** for already-promoted final findings, and
+   **`list_candidate_signals`** for runtime signals awaiting semantic review.
+5. For PR runtime-only assessment, filter `candidateSignals` to changed files,
+   then review evidence/counter-evidence before promoting anything to a final
+   PR finding. `list_findings` may legitimately be empty.
 
 ## What to output
 
-- A short verdict line: `<mode>: N findings on changed files (P0/P1/P2/P3).`
-- Per finding: id, severity, direction, claim, and the one-line evidence fact.
+- A short verdict line: `<mode>: N final findings, M candidate signals on changed files.`
+- Final findings and runtime candidate signals in separate sections.
+- Per candidate signal: id, severity, direction, claim, evidence fact, and review status.
 - An explicit “not assessed” note for changed areas the index could not cover.
 
 ## Honesty rules (non-negotiable)
 
 - An absence (“no handler”, “missing”) requires a `missingCodeProof`; otherwise
   downgrade to “could not confirm”.
-- Without a confirmed intent spec, only `baseline_to_code` findings are valid;
-  say intent alignment was not evaluated.
+- Without confirmed intent, alignment signals are inferred/proposed only; do not present them as settled final findings.
 - Never raise severity above what the evidence strength allows.

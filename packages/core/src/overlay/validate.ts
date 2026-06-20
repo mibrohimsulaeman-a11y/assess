@@ -15,13 +15,33 @@ export interface ValidationIssue {
 export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const nodeIds = new Set([...graph.nodes, ...graph.intents].map((n) => n.id));
+  const filePaths = new Set(graph.nodes.map((n) => n.filePath).filter((p): p is string => !!p));
   const findingIds = new Set(graph.findings.map((f) => f.id));
   const candidateSignalIds = new Set(graph.candidateSignals.map((s) => s.id));
+  const knownEndpoint = (id: string) =>
+    nodeIds.has(id) || id === "baseline" || id === "intent:UNCONFIRMED";
+  const knownEvidenceRef = (ref: string) => {
+    if (!ref) return false;
+    if (knownEndpoint(ref) || findingIds.has(ref) || candidateSignalIds.has(ref)) return true;
+    if (ref.startsWith("candidate:")) return candidateSignalIds.has(ref.slice("candidate:".length));
+    if (ref.startsWith("finding:")) return findingIds.has(ref.slice("finding:".length));
+    if (ref.startsWith("file:")) {
+      const body = ref.slice("file:".length);
+      for (const filePath of filePaths) if (body === filePath || body.startsWith(`${filePath}:`)) return true;
+      return false;
+    }
+    return false;
+  };
+
+  if (graph.version !== "3.0.0") {
+    issues.push({ level: "error", code: "GRAPH_VERSION", message: `version must be 3.0.0, got ${graph.version}` });
+  }
+  if (graph.artifact.runtimeSignalsAreFinalFindings !== false) {
+    issues.push({ level: "error", code: "ARTIFACT_SIGNAL_GATE", message: "artifact.runtimeSignalsAreFinalFindings must be false" });
+  }
 
   // referential integrity
   for (const e of graph.edges) {
-    const knownEndpoint = (id: string) =>
-      nodeIds.has(id) || id === "baseline" || id === "intent:UNCONFIRMED";
     if (!knownEndpoint(e.source)) issues.push({ level: "error", code: "EDGE_SOURCE", message: `edge ${e.id} source ${e.source} not found` });
     if (!knownEndpoint(e.target)) issues.push({ level: "error", code: "EDGE_TARGET", message: `edge ${e.id} target ${e.target} not found` });
     if (e.gap?.findingId && !findingIds.has(e.gap.findingId) && !candidateSignalIds.has(e.gap.findingId)) {
@@ -48,6 +68,9 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
     if (!f.reasoningSummary || !f.evidenceRefs?.length) {
       issues.push({ level: "error", code: "FINAL_FINDING_REASONING", message: `finding ${f.id} requires reasoningSummary and evidenceRefs` });
     }
+    for (const ref of f.evidenceRefs ?? []) {
+      if (!knownEvidenceRef(ref)) issues.push({ level: "error", code: "FINAL_FINDING_EVIDENCE_REF", message: `finding ${f.id} evidenceRef ${ref} not found` });
+    }
     issues.push(...honestyChecks(f));
   }
   for (const s of graph.candidateSignals) {
@@ -56,7 +79,35 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
         issues.push({ level: "error", code: "CANDIDATE_TARGET", message: `candidate signal ${s.id} target ${t} not found` });
       }
     }
+    if (graph.artifact.finalFindingsSource === "agent_review_required") {
+      if (s.reviewStatus !== "needs_agent_review") {
+        issues.push({ level: "error", code: "CANDIDATE_REVIEW_STATUS", message: `candidate signal ${s.id} must remain needs_agent_review when finalFindingsSource is agent_review_required` });
+      }
+      if (s.promotedFindingId) {
+        issues.push({ level: "error", code: "CANDIDATE_PROMOTED_RUNTIME", message: `candidate signal ${s.id} cannot have promotedFindingId when finalFindingsSource is agent_review_required` });
+      }
+    }
+    if (s.reviewStatus === "accepted" && !s.promotedFindingId) {
+      issues.push({ level: "error", code: "CANDIDATE_ACCEPTED_WITHOUT_PROMOTION", message: `candidate signal ${s.id} accepted status requires promotedFindingId` });
+    }
+    if (s.promotedFindingId && !findingIds.has(s.promotedFindingId)) {
+      issues.push({ level: "error", code: "CANDIDATE_PROMOTED_FINDING", message: `candidate signal ${s.id} promotedFindingId ${s.promotedFindingId} not found` });
+    }
+    for (const ref of s.evidenceRefs) {
+      if (!knownEvidenceRef(ref)) issues.push({ level: "error", code: "CANDIDATE_EVIDENCE_REF", message: `candidate signal ${s.id} evidenceRef ${ref} not found` });
+    }
     issues.push(...honestyChecks(s));
+  }
+  for (const n of graph.assessmentNodes) {
+    for (const id of n.candidateSignalIds) {
+      if (!candidateSignalIds.has(id)) issues.push({ level: "error", code: "ASSESSMENT_NODE_SIGNAL", message: `assessmentNode ${n.id} candidate signal ${id} not found` });
+    }
+    for (const id of n.findingIds) {
+      if (!findingIds.has(id)) issues.push({ level: "error", code: "ASSESSMENT_NODE_FINDING", message: `assessmentNode ${n.id} finding ${id} not found` });
+    }
+    for (const ref of n.evidenceRefs) {
+      if (!knownEvidenceRef(ref)) issues.push({ level: "error", code: "ASSESSMENT_NODE_EVIDENCE_REF", message: `assessmentNode ${n.id} evidenceRef ${ref} not found` });
+    }
   }
 
   // coverage completeness: every assessable node must carry a status
