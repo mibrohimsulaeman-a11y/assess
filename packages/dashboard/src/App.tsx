@@ -4,6 +4,8 @@ import { CoverageBanner } from "./components/CoverageBanner.js";
 import { FilterPanel } from "./components/FilterPanel.js";
 import { NodeInfo } from "./components/NodeInfo.js";
 import { RunSummary } from "./components/RunSummary.js";
+import { ReadinessBanner } from "./components/ReadinessBanner.js";
+import { ReviewDetailPanel } from "./components/ReviewDetailPanel.js";
 import { GapGraphView } from "./graph/GapGraphView.js";
 import { CoverageMapView } from "./graph/CoverageMapView.js";
 import { FindingsView } from "./graph/FindingsView.js";
@@ -49,6 +51,8 @@ export function App() {
       {error && <div className="app__state app__state--error">Failed to load: {error}</div>}
 
       {graph && (
+        <>
+        <ReadinessBanner graph={graph} />
         <div className="app__body">
           <aside className={`app__sidebar ${sidebarOpen ? "" : "app__sidebar--collapsed"}`}>
             <button
@@ -63,6 +67,7 @@ export function App() {
                 <RunSummary graph={graph} />
                 <CoverageBanner graph={graph} />
                 <FilterPanel />
+                <ReviewDetailPanel />
                 <NodeInfo />
               </div>
             )}
@@ -74,6 +79,7 @@ export function App() {
             {view === "findings" && <FindingsView graph={graph} />}
           </main>
         </div>
+        </>
       )}
     </div>
   );

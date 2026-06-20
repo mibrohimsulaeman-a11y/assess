@@ -24,11 +24,13 @@ interface DashboardState {
   view: ViewMode;
   selectedNodeId: string | null;
   selectedFindingId: string | null;
+  selectedCandidateId: string | null;
   filters: Filters;
   load: (url?: string) => Promise<void>;
   setView: (v: ViewMode) => void;
   selectNode: (id: string | null) => void;
   selectFinding: (id: string | null) => void;
+  selectCandidate: (id: string | null) => void;
   toggleDirection: (d: GapDirection) => void;
   setMinSeverity: (s: Severity | null) => void;
   toggleSatisfied: () => void;
@@ -50,6 +52,7 @@ export const useStore = create<DashboardState>((set, get) => ({
   view: "semantic",
   selectedNodeId: null,
   selectedFindingId: null,
+  selectedCandidateId: null,
   filters: {
     directions: new Set<GapDirection>(["intent_to_code", "code_to_intent", "baseline_to_code"]),
     minSeverity: null,
@@ -69,8 +72,9 @@ export const useStore = create<DashboardState>((set, get) => ({
     }
   },
   setView: (view) => set({ view }),
-  selectNode: (selectedNodeId) => set({ selectedNodeId, selectedFindingId: null }),
-  selectFinding: (selectedFindingId) => set({ selectedFindingId }),
+  selectNode: (selectedNodeId) => set({ selectedNodeId, selectedFindingId: null, selectedCandidateId: null }),
+  selectFinding: (selectedFindingId) => set({ selectedFindingId, selectedCandidateId: null }),
+  selectCandidate: (selectedCandidateId) => set({ selectedCandidateId, selectedFindingId: null }),
   toggleDirection: (d) =>
     set((s) => {
       const directions = new Set(s.filters.directions);

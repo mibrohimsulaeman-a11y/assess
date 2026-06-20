@@ -1,4 +1,5 @@
 import type { AssessmentGraph, Severity } from "@assess/core";
+import { getDashboardReadiness } from "../reviewReadiness.mjs";
 
 const SEVERITIES: Severity[] = ["P0", "P1", "P2", "P3"];
 
@@ -28,14 +29,16 @@ export function RunSummary({ graph }: { graph: AssessmentGraph }) {
     : "0 candidate signals";
   const assessmentNodes = graph.assessmentNodes?.length ?? graph.summary.assessmentNodeCount ?? 0;
   const source = graph.artifact?.finalFindingsSource ?? "legacy";
+  const readiness = getDashboardReadiness(graph);
 
   return (
     <section className="run-summary" aria-label="Assessment run summary">
       <div className="run-summary__hero">
         <div>
-          <p className="run-summary__eyebrow">Loaded semantic assessment shell</p>
+          <p className="run-summary__eyebrow">{readiness.state.replace(/_/g, " ")}</p>
           <h1>{graph.project.name}</h1>
-          <p className="run-summary__headline">{graph.summary.headline}</p>
+          <p className="run-summary__headline">{readiness.message}</p>
+          <p className="run-summary__headline run-summary__headline--secondary">{graph.summary.headline}</p>
           <div className="run-summary__meta">
             <span>commit: <strong>{graph.binding.assessedAtCommit}</strong></span>
             <span>generated: <strong>{formatDate(graph.binding.generated)}</strong></span>
@@ -58,12 +61,12 @@ export function RunSummary({ graph }: { graph: AssessmentGraph }) {
         <article className="run-card">
           <span className="run-card__label">Final findings</span>
           <strong>{graph.findings.length}</strong>
-          <span>{candidateSummary}</span>
+          <span>{candidateSummary}; candidates are not final findings</span>
         </article>
         <article className="run-card">
           <span className="run-card__label">Semantic layer</span>
           <strong>{assessmentNodes} nodes</strong>
-          <span>{graph.nodes.length + graph.intents.length} fact nodes, schema {graph.version}</span>
+          <span>{graph.nodes.length + graph.intents.length} fact nodes, schema {graph.version}; {readiness.userFacingReady ? "user-facing ready" : "internal only"}</span>
         </article>
       </div>
 

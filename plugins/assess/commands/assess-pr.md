@@ -14,6 +14,6 @@ Steps:
 5. Review candidate signals against changed source and counter-evidence before treating anything as a PR finding.
 6. Write/apply `review.decisions.json`; any `needs_more_evidence` decision keeps the PR report blocked.
 7. State any changed area that could not be assessed.
-8. Do not share dashboard/devCommand or report until reviewed graph validation passes.
+8. Do not share dashboard/devCommand or report until reviewed graph validation passes; the cockpit must show zero pending blockers.
 
 Never edit code. Drop or keep as open question any candidate signal lacking semantic review evidence or bounded missing-code proof.

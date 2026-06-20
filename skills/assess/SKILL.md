@@ -46,8 +46,10 @@ Every run writes to `.assessment/`:
 - `report.md` — the human-readable findings report, only from a reviewed graph.
 - `findings/` — one file per reviewed finding with full evidence + binding.
 
-The graph drives four dashboard views (`@assess/dashboard`): **Semantic assessment**
-(default), **Final findings**, **Fact gap signals**, and **Fact coverage**.
+The graph drives the `@assess/dashboard` review cockpit. It shows readiness
+(`runtime_only`, `partial_review`, `reviewed_ready`), candidate review queues,
+evidence/counter-evidence detail, final-finding linkage, and fact-layer
+drilldowns. Runtime candidate signals are never presented as final findings.
 
 ---
 
@@ -158,7 +160,7 @@ agent present the dashboard command or report.
 5. Every scanned node gets a coverage status — unassessed areas are shown, not hidden.
 6. Every finding is bound to a commit + intent-spec hash (+ span hashes when cited).
 7. The graph is validated before it is written; a failing honesty gate blocks the run.
-8. The dashboard shows semantic assessment first; raw fact graph views are evidence drilldown only.
+8. The dashboard is a review cockpit: it must show readiness state, candidate queues, evidence detail, and linkage before any graph looks user-facing.
 9. Runtime `candidateSignals` are never final findings until promoted by agent/human semantic review.
 10. Do not present the dashboard while `finalFindingsSource` is `agent_review_required`; use it only as an internal preview until semantic review is complete.
 11. Do not show or serve dashboard/report from a runtime-only graph. Only show dashboard/report after review decisions are applied and reviewed graph validation passes.

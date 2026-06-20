@@ -3,11 +3,12 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Interactive gap-map for assess. Renders .assessment/assessment-graph.json as a coverage map, gap map (intent\u2192code / code\u2192intent / baseline), and findings list. Not a comprehension tour \u2014 every view answers \u2018where are the gaps and what was NOT assessed\u2019.",
+  "description": "Interactive gap-map for assess. Renders .assessment/assessment-graph.json as a coverage map, gap map (intent→code / code→intent / baseline), and findings list. Not a comprehension tour — every view answers ‘where are the gaps and what was NOT assessed’.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:helpers": "node test/review-readiness.cjs"
   },
   "dependencies": {
     "react": "^18.3.1",

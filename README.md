@@ -79,9 +79,10 @@ the typed helper modules:
   `explain_finding`, and `export_report`.
 - **`plugins/assess/`**: Claude Code plugin surfaces — commands (`/assess:assess`,
   `/assess:assess-pr`, `/assess:explain-finding`), skills, agents, and hooks.
-- `@assess/dashboard`: a React/ReactFlow dashboard whose default view is the
-  semantic assessment layer; fact coverage and runtime gap signals are drilldown
-  views.
+- `@assess/dashboard`: a React/ReactFlow review cockpit. It shows whether the
+  loaded graph is runtime-only, partially reviewed, or reviewed-ready; groups
+  candidate signals by review status; exposes evidence/counter-evidence/open
+  questions; and makes candidate → semantic node → final finding linkage visible.
 - Zero-dependency honesty-gate fixtures proving the validator on sample graphs.
 
 Honest limitation: the TS/JS scanner is a deterministic MVP (regex + brace
@@ -279,17 +280,24 @@ MCP exposes `review_queue` to group pending/accepted/rejected candidates.
 
 ---
 
-## Dashboard views
+## Dashboard review cockpit
 
-The dashboard is the post-review cockpit for a validated reviewed graph. It starts
-with the semantic layer, then exposes deterministic evidence as drilldown. Do not
-present it for a runtime-only graph where `finalFindingsSource` is
-`agent_review_required` or any candidate remains `needs_agent_review`.
+The dashboard is a review cockpit, not a publishable report viewer for every
+graph. It classifies the loaded artifact into three states:
 
-- **Semantic assessment** — curated semantic nodes and final findings. Runtime-only runs show why agent review is still required.
-- **Final findings** — agent/human-reviewed verdicts only.
-- **Fact gap signals** — deterministic `candidateSignals`; useful evidence, not final findings.
-- **Fact coverage** — every area and node by deterministic coverage status.
+| State | Meaning | User-facing? |
+|---|---|---|
+| `runtime_only` | `artifact.finalFindingsSource` is `agent_review_required` | No — internal preview only |
+| `partial_review` | review source exists, but pending candidates or missing semantic nodes remain | No — blocked/internal only |
+| `reviewed_ready` | reviewed source + semantic nodes + zero pending candidates | Yes |
+
+The cockpit surfaces:
+
+- **Readiness banner** — exactly why the dashboard/report is ready or blocked.
+- **Candidate review queue** — `needs_agent_review`, `accepted`, and `rejected` buckets.
+- **Evidence detail panel** — evidence refs, target nodes, counter-evidence checked, open questions, semantic-node links, and final-finding links.
+- **Final finding linkage** — each final finding shows the assessment nodes and candidate signals that justify its existence; missing linkage is shown as a warning.
+- **Fact gap / coverage drilldowns** — deterministic substrate views; candidate signals are never presented as final findings.
 
 ---
 

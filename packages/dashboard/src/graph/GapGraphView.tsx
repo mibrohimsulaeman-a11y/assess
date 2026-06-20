@@ -67,7 +67,7 @@ function GapNode({ data }: NodeProps<GapNodeData>) {
 const NODE_TYPES = { gapNode: GapNode };
 
 export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
-  const { filters, selectNode, selectFinding } = useStore();
+  const { filters, selectNode, selectFinding, selectCandidate } = useStore();
 
   const { nodes, edges } = useMemo(() => {
     const nodeMap = new Map<string, GraphNode>();
@@ -182,8 +182,9 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
         minZoom={0.2}
         onNodeClick={(_, n) => selectNode(n.id)}
         onEdgeClick={(_, ed) => {
-          const fid = (ed.data as { findingId?: string; candidateSignalId?: string } | undefined)?.findingId;
-          if (fid) selectFinding(fid);
+          const data = ed.data as { findingId?: string; candidateSignalId?: string } | undefined;
+          if (data?.findingId) selectFinding(data.findingId);
+          else if (data?.candidateSignalId) selectCandidate(data.candidateSignalId);
         }}
       >
         <Background />

@@ -15,7 +15,7 @@ const badge = (background: string): CSSProperties => ({
 });
 
 export function NodeInfo() {
-  const { graph, selectedNodeId } = useStore();
+  const { graph, selectedNodeId, selectCandidate, selectFinding } = useStore();
   if (!graph || !selectedNodeId) {
     return <section className="panel panel--muted">Select a node to see its assessment.</section>;
   }
@@ -61,7 +61,9 @@ export function NodeInfo() {
         <ul className="node__findings">
           {findings.map((f) => (
             <li key={f.id}>
-              <strong>{f.severity}</strong> {f.id} {"\u2014"} {f.claim}
+              <button type="button" className="node__link-button" onClick={() => selectFinding(f.id)}>
+                <strong>{f.severity}</strong> {f.id} {"\u2014"} {f.claim}
+              </button>
             </li>
           ))}
         </ul>
@@ -73,7 +75,9 @@ export function NodeInfo() {
           <ul className="node__findings">
             {candidateSignals.map((s) => (
               <li key={s.id}>
-                <strong>{s.severity}</strong> {s.id} {"\u2014"} {s.claim}
+                <button type="button" className="node__link-button" onClick={() => selectCandidate(s.id)}>
+                  <strong>{s.severity}</strong> {s.id} {"\u2014"} {s.claim}
+                </button>
               </li>
             ))}
           </ul>
