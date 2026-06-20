@@ -8,10 +8,10 @@
  * `node` run here proves, with zero dependencies and against the REAL process:
  *
  *   1. initialize returns the protocol version + serverInfo
- *   2. tools/list advertises exactly the five documented tools, each with a
+ *   2. tools/list advertises exactly the documented tools, each with a
  *      required-args input schema
  *   3. tools/call works end-to-end: assess_repo -> validate_graph -> list_findings
- *      -> explain_finding -> export_report, threading a real generated graph
+ *      -> list_candidate_signals -> explain_candidate_signal -> export_report, threading a real generated graph
  *   4. an unknown tool yields an isError tool result (not a crashed server)
  *   5. validate_graph does NOT call process.exit — i.e. importing the validator
  *      inside the server cannot kill it mid-session (a regression that file's
@@ -27,11 +27,19 @@ const SERVER = path.join(__dirname, "..", "assess-server.mjs");
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..");
 // A small, real, deterministic subtree to assess (the engine's own source).
 const TARGET_REPO = path.join(REPO_ROOT, "packages", "core", "src");
-// Bind to the sample CONFIRMED intent so the run produces real findings — this
-// exercises list_findings/explain_finding on actual gap verdicts, not an empty set.
+// Bind to the sample CONFIRMED intent so the deterministic runtime produces real
+// candidate signals. Final findings stay empty until agent/human semantic review.
 const INTENT_SPEC = path.join(REPO_ROOT, "examples", "intent", "assess-core.intent.json");
 
-const EXPECTED_TOOLS = ["assess_repo", "validate_graph", "list_findings", "explain_finding", "export_report"];
+const EXPECTED_TOOLS = [
+  "assess_repo",
+  "validate_graph",
+  "list_findings",
+  "list_candidate_signals",
+  "explain_finding",
+  "explain_candidate_signal",
+  "export_report",
+];
 
 let failures = 0;
 function check(name, cond, detail) {
@@ -100,6 +108,7 @@ async function main() {
     { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "assess_repo", arguments: { repoRoot: TARGET_REPO, intentSpecPath: INTENT_SPEC, outDir } } },
     { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "validate_graph", arguments: { graphPath } } },
     { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "list_findings", arguments: { graphPath, minSeverity: "P3" } } },
+    { jsonrpc: "2.0", id: 6, method: "tools/call", params: { name: "list_candidate_signals", arguments: { graphPath, minSeverity: "P3" } } },
     { jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "export_report", arguments: { graphPath } } },
     { jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "no_such_tool", arguments: {} } },
     { jsonrpc: "2.0", id: 9, method: "ping", params: {} },
@@ -123,7 +132,7 @@ async function main() {
   const list = byId.get(2);
   const tools = list?.result?.tools || [];
   const names = tools.map((t) => t.name).sort();
-  check("tools/list advertises exactly the 5 documented tools",
+  check("tools/list advertises exactly the documented semantic-boundary tools",
     JSON.stringify(names) === JSON.stringify([...EXPECTED_TOOLS].sort()),
     JSON.stringify(names));
   check("every tool has an object input schema with required args",
@@ -133,7 +142,7 @@ async function main() {
   // 3. tools/call chain
   const assess = toolPayload(byId.get(3));
   check("assess_repo writes a graph and reports counts",
-    !!assess && fs.existsSync(graphPath) && assess.outPath === graphPath && typeof assess.counts?.findings === "number",
+    !!assess && fs.existsSync(graphPath) && assess.outPath === graphPath && typeof assess.counts?.candidateSignals === "number" && typeof assess.counts?.finalFindings === "number",
     JSON.stringify(assess));
 
   const valid = toolPayload(byId.get(4));
@@ -144,27 +153,30 @@ async function main() {
   // 5. validate_graph must not kill the server: if it had called process.exit,
   // every later response (list_findings, export_report, ping) would be missing.
   check("validate_graph does not terminate the server (later calls still answered)",
-    byId.has(5) && byId.has(7) && byId.has(9),
+    byId.has(5) && byId.has(6) && byId.has(7) && byId.has(9),
     "a call after validate_graph went unanswered — server likely exited");
 
   const findings = toolPayload(byId.get(5));
-  check("list_findings returns a non-empty count + array (intent-bound run has gaps)",
-    typeof findings?.count === "number" && Array.isArray(findings.findings) && findings.count > 0,
-    JSON.stringify(findings?.count));
+  check("list_findings returns final-only empty findings for a runtime-only run",
+    typeof findings?.count === "number" && Array.isArray(findings.findings) && findings.count === 0 && findings.finalOnly === true,
+    JSON.stringify(findings));
 
-  // explain_finding only if there is something to explain; otherwise assert the
-  // documented not-found error shape via a follow-up single-call session.
-  const firstId = findings?.findings?.[0]?.id;
-  if (firstId) {
+  const signals = toolPayload(byId.get(6));
+  check("list_candidate_signals returns deterministic runtime signals awaiting review",
+    typeof signals?.count === "number" && Array.isArray(signals.candidateSignals) && signals.count > 0,
+    JSON.stringify(signals?.count));
+
+  const firstSignalId = signals?.candidateSignals?.[0]?.id;
+  if (firstSignalId) {
     const { responses: r2 } = await runSession([
-      { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "explain_finding", arguments: { graphPath, findingId: firstId } } },
+      { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "explain_candidate_signal", arguments: { graphPath, signalId: firstSignalId } } },
     ]);
     const explained = toolPayload(r2.find((r) => r.id === 1));
-    check("explain_finding returns the full evidence trail for a real finding",
-      explained?.id === firstId && !!explained.evidence && "severityRationale" in explained,
+    check("explain_candidate_signal returns deterministic evidence trail for a runtime signal",
+      explained?.id === firstSignalId && !!explained.evidence && explained.reviewStatus === "needs_agent_review",
       JSON.stringify(explained?.id));
   } else {
-    check("explain_finding (skipped: no findings to explain)", true);
+    check("explain_candidate_signal (skipped: no candidate signals to explain)", true);
   }
 
   const report = toolPayload(byId.get(7));

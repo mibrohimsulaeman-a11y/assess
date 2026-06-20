@@ -4,9 +4,10 @@ Everything `assess` writes lives under `.assessment/` in the repo root. The arti
 
 ```
 .assessment/
-  intent-spec.md            ← the confirmed should-be (Phase 2, the source of truth)
-  knowledge-graph.md        ← optional: components + capabilities overlay (Phase 5; see knowledge-graph.md)
-  report.md                 ← the assessment: what's correct + what's wrong (Phase 4)
+  assessment-graph.json     ← fact layer + candidateSignals + reviewed semantic layer
+  intent-spec.md            ← confirmed/proposed should-be model when available
+  knowledge-graph.md        ← optional: semantic capabilities/workflows overlay
+  report.md                 ← final findings + candidate signals kept separate
   implementation-plan.md    ← optional: ordered plan to close the gaps (Phase 5; see implementation-plan.md)
   baseline-debt.md          ← optional: consciously accepted gaps, with expiry
   findings/                 ← optional: one file per finding, for large assessments
@@ -21,6 +22,20 @@ assessed_at_commit: <short SHA>
 intent_spec_hash: sha256:…     # the intent the artifact was judged against
 generated: <YYYY-MM-DD>
 ```
+
+
+## Runtime candidates vs final report
+
+`assessment-graph.json` may contain many `candidateSignals` and zero final
+`findings`. That is valid. The report must keep them separate:
+
+- **Final findings** — promoted after semantic review; include reasoning summary,
+  evidence refs, counter-evidence checked, and open questions.
+- **Runtime candidate signals** — deterministic evidence needing review; useful
+  substrate but not authoritative.
+
+Do not turn candidate signals into `report.md` findings unless the review gate
+passes.
 
 ---
 

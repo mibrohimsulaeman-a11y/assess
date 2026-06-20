@@ -10,12 +10,14 @@
 //
 //   assess_repo      read repo (+optional intent) -> assessment-graph.json
 //   validate_graph   structural + honesty validation of a graph
-//   list_findings    list findings, filterable by severity / direction
-//   explain_finding  full evidence + proof + severity rationale for one finding
-//   export_report    deterministic Markdown report from a graph
+//   list_findings            list final agent/human-reviewed findings
+//   list_candidate_signals   list deterministic runtime signals awaiting review
+//   explain_finding          full evidence + reasoning for one final finding
+//   explain_candidate_signal full deterministic evidence for one runtime signal
+//   export_report            deterministic Markdown report from a graph
 //
-// This is what keeps findings evidence-bound: the agent calls a deterministic
-// tool instead of judging the code freely.
+// This keeps boundaries clear: runtime tools produce facts/candidate signals;
+// agents promote only high-quality, reasoned items into final findings.
 // =====================================================================
 
 import fs from "node:fs";
@@ -36,7 +38,7 @@ const SERVER_INFO = { name: "assess", version: "2.0.0" };
 const TOOLS = [
   {
     name: "assess_repo",
-    description: "Scan a repository, build a deterministic index, optionally bind it to a confirmed intent spec, run the three assessment directions, and emit a validated assessment-graph.json. Returns the summary and findings.",
+    description: "Scan a repository, build a deterministic fact index, optionally bind confirmed/proposed intent, and emit a validated semantic assessment shell. Runtime outputs candidateSignals only; final findings require agent/human review.",
     inputSchema: {
       type: "object",
       properties: {
@@ -58,7 +60,21 @@ const TOOLS = [
   },
   {
     name: "list_findings",
-    description: "List findings from an assessment graph, optionally filtered by minimum severity (P0..P3) and/or direction.",
+    description: "List final curated findings only. Runtime candidate signals are intentionally excluded; use list_candidate_signals for deterministic signals awaiting agent review.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        graphPath: { type: "string" },
+        minSeverity: { type: "string", enum: ["P0", "P1", "P2", "P3"] },
+        direction: { type: "string", enum: ["intent_to_code", "code_to_intent", "baseline_to_code"] },
+      },
+      required: ["graphPath"],
+    },
+  },
+
+  {
+    name: "list_candidate_signals",
+    description: "List deterministic runtime candidate signals, optionally filtered by minimum severity and/or direction. These are evidence-backed signals, not final findings.",
     inputSchema: {
       type: "object",
       properties: {
@@ -71,11 +87,21 @@ const TOOLS = [
   },
   {
     name: "explain_finding",
-    description: "Return the full evidence trail for one finding: deterministic fact, evidence strength, missing-code proof (if any), severity rationale, and the intent/code it binds.",
+    description: "Return the full evidence and semantic reasoning trail for one final finding. Final findings must come from agent/human review, not raw runtime signals.",
     inputSchema: {
       type: "object",
       properties: { graphPath: { type: "string" }, findingId: { type: "string" } },
       required: ["graphPath", "findingId"],
+    },
+  },
+
+  {
+    name: "explain_candidate_signal",
+    description: "Return the deterministic evidence trail for one runtime candidate signal. Use this as substrate for agent semantic review; do not treat it as a final finding.",
+    inputSchema: {
+      type: "object",
+      properties: { graphPath: { type: "string" }, signalId: { type: "string" } },
+      required: ["graphPath", "signalId"],
     },
   },
   {
@@ -147,6 +173,20 @@ function readGraph(graphPath) {
   return JSON.parse(fs.readFileSync(abs, "utf8"));
 }
 
+function publicFinding(x) {
+  return {
+    id: x.id,
+    severity: x.severity,
+    direction: x.direction,
+    category: x.category,
+    claim: x.claim,
+    intentRef: x.intentRef ?? null,
+    targetNodeIds: x.targetNodeIds ?? [],
+    evidence: x.evidence,
+    missingCodeProof: x.missingCodeProof ?? null,
+  };
+}
+
 // ---- tool implementations ----
 
 const handlers = {
@@ -164,8 +204,17 @@ const handlers = {
         graphPath: outPath,
         devCommand: `ASSESS_GRAPH=${JSON.stringify(outPath)} pnpm dev:dashboard`,
       },
-      counts: { files: summary.files, nodes: summary.nodes, findings: summary.findings },
+      counts: {
+        files: summary.files,
+        nodes: summary.nodes,
+        finalFindings: graph.findings.length,
+        candidateSignals: graph.candidateSignals?.length ?? 0,
+        assessmentNodes: graph.assessmentNodes?.length ?? 0,
+      },
+      artifact: graph.artifact,
+      intentModel: graph.intentModel,
       bySeverity: graph.summary.bySeverity,
+      candidateBySeverity: graph.summary.candidateBySeverity,
       headlineTrust: graph.coverage.headlineTrust,
       coverage: graph.coverage.byStatus,
     };
@@ -184,33 +233,58 @@ const handlers = {
   },
   list_findings(args) {
     const g = readGraph(args.graphPath);
-    let f = g.findings;
+    let f = g.findings || [];
     if (args.minSeverity) f = f.filter((x) => SEV_ORDER.indexOf(x.severity) >= SEV_ORDER.indexOf(args.minSeverity));
     if (args.direction) f = f.filter((x) => x.direction === args.direction);
     return {
+      finalOnly: true,
+      candidateSignalCount: g.candidateSignals?.length ?? 0,
       count: f.length,
-      findings: f.map((x) => ({
-        id: x.id,
-        severity: x.severity,
-        direction: x.direction,
-        category: x.category,
-        claim: x.claim,
-        intentRef: x.intentRef ?? null,
-        targetNodeIds: x.targetNodeIds ?? [],
-        evidence: x.evidence,
-        missingCodeProof: x.missingCodeProof ?? null,
-      })),
+      findings: f.map(publicFinding),
+    };
+  },
+  list_candidate_signals(args) {
+    const g = readGraph(args.graphPath);
+    let f = g.candidateSignals || [];
+    if (args.minSeverity) f = f.filter((x) => SEV_ORDER.indexOf(x.severity) >= SEV_ORDER.indexOf(args.minSeverity));
+    if (args.direction) f = f.filter((x) => x.direction === args.direction);
+    return {
+      finalFindingsCount: g.findings?.length ?? 0,
+      count: f.length,
+      candidateSignals: f.map(publicFinding),
     };
   },
   explain_finding(args) {
     const g = readGraph(args.graphPath);
-    const f = g.findings.find((x) => x.id === args.findingId);
-    if (!f) throw new Error(`finding ${args.findingId} not found`);
+    const f = (g.findings || []).find((x) => x.id === args.findingId);
+    if (!f) throw new Error(`final finding ${args.findingId} not found`);
     return {
-      id: f.id, severity: f.severity, direction: f.direction, category: f.category,
-      claim: f.claim, evidence: f.evidence, missingCodeProof: f.missingCodeProof ?? null,
-      severityRationale: f.explanation, recommendation: f.recommendation,
-      intentRef: f.intentRef ?? null, targetNodeIds: f.targetNodeIds, binding: f.binding,
+      ...publicFinding(f),
+      source: f.source ?? null,
+      reasoningSummary: f.reasoningSummary ?? null,
+      evidenceRefs: f.evidenceRefs ?? [],
+      counterEvidenceChecked: f.counterEvidenceChecked ?? [],
+      openQuestions: f.openQuestions ?? [],
+      severityRationale: f.explanation,
+      recommendation: f.recommendation,
+      binding: f.binding,
+    };
+  },
+  explain_candidate_signal(args) {
+    const g = readGraph(args.graphPath);
+    const f = (g.candidateSignals || []).find((x) => x.id === args.signalId);
+    if (!f) throw new Error(`candidate signal ${args.signalId} not found`);
+    return {
+      ...publicFinding(f),
+      source: f.source,
+      reviewStatus: f.reviewStatus,
+      signalKind: f.signalKind,
+      evidenceRefs: f.evidenceRefs ?? [],
+      counterEvidenceChecked: f.counterEvidenceChecked ?? [],
+      openQuestions: f.openQuestions ?? [],
+      severityRationale: f.explanation,
+      recommendation: f.recommendation,
+      binding: f.binding,
     };
   },
   export_report(args) {
@@ -221,25 +295,42 @@ const handlers = {
     lines.push(`- Commit: \`${g.binding.assessedAtCommit}\``);
     lines.push(`- Intent spec: \`${g.binding.intentSpecHash}\``);
     lines.push(`- Headline trust: **${g.coverage.headlineTrust}**`);
-    lines.push(`- Coverage: ${JSON.stringify(g.coverage.byStatus)}`, "");
+    lines.push(`- Coverage: ${JSON.stringify(g.coverage.byStatus)}`);
+    lines.push(`- Final findings: ${(g.findings || []).length}`);
+    lines.push(`- Runtime candidate signals: ${(g.candidateSignals || []).length}`);
+    lines.push(`- Final findings source: ${g.artifact?.finalFindingsSource ?? "legacy"}`, "");
     if (g.coverage.gaps && g.coverage.gaps.length) {
       lines.push("## Coverage gaps", "");
       for (const gap of g.coverage.gaps) lines.push(`- **${gap.scope}** — ${gap.status}: ${gap.reason}`);
       lines.push("");
     }
     lines.push("## Findings", "");
-    if (!g.findings.length) lines.push("_No findings._", "");
+    const finalFindings = g.findings || [];
+    const candidateSignals = g.candidateSignals || [];
+    if (!finalFindings.length) lines.push("_No final findings. Runtime candidate signals require agent/human semantic review._", "");
     for (const sev of ["P0", "P1", "P2", "P3"]) {
-      const fs2 = g.findings.filter((f) => f.severity === sev);
+      const fs2 = finalFindings.filter((f) => f.severity === sev);
       if (!fs2.length) continue;
       lines.push(`### ${sev} (${fs2.length})`, "");
       for (const f of fs2) {
         lines.push(`- **${f.id}** [${f.direction}] ${f.claim}`);
         lines.push(`  - Evidence (${f.evidence.strength}): ${f.evidence.fact}`);
+        if (f.reasoningSummary) lines.push(`  - Reasoning: ${f.reasoningSummary}`);
         if (f.missingCodeProof) lines.push(`  - Absence proof: ${f.missingCodeProof.result} (coverage ${f.missingCodeProof.coverage.actual}/${f.missingCodeProof.coverage.required})`);
         if (f.recommendation) lines.push(`  - Fix: ${f.recommendation}`);
       }
       lines.push("");
+    }
+    if (candidateSignals.length) {
+      lines.push("## Runtime candidate signals", "");
+      lines.push("These are deterministic signals, not final findings. Promote only after agent semantic review.", "");
+      for (const sev of ["P0", "P1", "P2", "P3"]) {
+        const fs2 = candidateSignals.filter((f) => f.severity === sev);
+        if (!fs2.length) continue;
+        lines.push(`### ${sev} candidates (${fs2.length})`, "");
+        for (const f of fs2) lines.push(`- **${f.id}** [${f.direction}] ${f.claim}`);
+        lines.push("");
+      }
     }
     return { markdown: lines.join("\n") };
   },

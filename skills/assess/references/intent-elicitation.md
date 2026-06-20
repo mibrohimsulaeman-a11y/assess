@@ -2,6 +2,24 @@
 
 This is the step that turns a description into an assessment. A descriptive tool has one input (the code) and assumes *code = truth*. You need a second source — **intent** — and for most codebases it isn't written down anywhere. So you derive a candidate, confirm it with the user, and persist it. Skip this and you are back to “code = truth,” grading chaos as correct.
 
+
+## 0. Intent lifecycle, not instant confirmation
+
+Most real repositories have no clean spec. Do not pretend otherwise. Classify
+every intent item with a lifecycle status:
+
+| Status | Use when |
+|---|---|
+| `observed` | code/runtime fact only; no should-be claim |
+| `inferred_intent` | agent hypothesis from code/docs/tests |
+| `proposed_intent` | draft presented to owner but not accepted |
+| `confirmed_intent` | owner/doc/contract confirms should-be |
+| `rejected_intent` | hypothesis disproven or out of scope |
+
+Alignment severity and wording must respect this status. Only `confirmed_intent`
+can support a settled alignment finding. Inferred/proposed intent can support an
+open question or capped candidate, not a confident verdict.
+
 ---
 
 ## 1. Derive, don't interrogate

@@ -24,6 +24,7 @@ export function NodeInfo() {
 
   const a = node.assessment;
   const findings = a ? graph.findings.filter((f) => a.findingIds.includes(f.id)) : [];
+  const candidateSignals = a ? (graph.candidateSignals ?? []).filter((s) => (a.candidateSignalIds ?? []).includes(s.id)) : [];
 
   return (
     <section className="panel">
@@ -46,7 +47,7 @@ export function NodeInfo() {
           <span style={badge(COVERAGE_COLOR[a.coverageStatus])}>{a.coverageStatus}</span>
           <span style={badge(OWNERSHIP_COLOR[a.ownership])}>{a.ownership}</span>
           <span style={badge(severityColor(a.worstSeverity))}>
-            {a.worstSeverity ?? "no findings"}
+            {a.worstSeverity ?? "no signals"}
           </span>
           <span className="node__readiness">{a.readiness}</span>
         </div>
@@ -64,6 +65,19 @@ export function NodeInfo() {
             </li>
           ))}
         </ul>
+      )}
+
+      {candidateSignals.length > 0 && (
+        <div className="node__signals">
+          <p>Runtime candidate signals, not final findings:</p>
+          <ul className="node__findings">
+            {candidateSignals.map((s) => (
+              <li key={s.id}>
+                <strong>{s.severity}</strong> {s.id} {"\u2014"} {s.claim}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );

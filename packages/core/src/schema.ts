@@ -64,6 +64,7 @@ export const NodeAssessmentSchema = z.object({
   ownership: OwnershipStateSchema,
   capabilityId: z.string().optional(),
   findingIds: z.array(z.string()),
+  candidateSignalIds: z.array(z.string()).optional(),
   readiness: z.enum(["ready", "partial", "blocked", "unknown"]),
   worstSeverity: SeveritySchema.nullable().optional(),
   trust: EvidenceStrengthSchema.optional(),
@@ -97,6 +98,7 @@ export const EdgeGapSchema = z.object({
     "justified", "unexplained", "violation",
   ]),
   findingId: z.string().optional(),
+  candidateSignalId: z.string().optional(),
 });
 
 export const GraphEdgeSchema = z.object({
@@ -131,6 +133,54 @@ export const FindingSchema = z.object({
     spanSha256: z.string().optional(),
     normalizedFingerprint: z.string().optional(),
   }),
+  source: z.enum(["agent_review", "human_review"]).optional(),
+  reasoningSummary: z.string().optional(),
+  evidenceRefs: z.array(z.string()).optional(),
+  counterEvidenceChecked: z.array(z.string()).optional(),
+  openQuestions: z.array(z.string()).optional(),
+});
+
+export const CandidateSignalSchema = FindingSchema.omit({ source: true }).extend({
+  source: z.literal("runtime_candidate"),
+  reviewStatus: z.enum(["needs_agent_review", "accepted", "rejected"]),
+  signalKind: z.enum(["deterministic_gap", "baseline_signal"]),
+  evidenceRefs: z.array(z.string()),
+  counterEvidenceChecked: z.array(z.string()),
+  openQuestions: z.array(z.string()),
+  promotedFindingId: z.string().optional(),
+});
+
+export const SemanticAssessmentNodeSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["capability", "workflow", "risk_area", "open_question", "evidence_bundle"]),
+  name: z.string(),
+  summary: z.string(),
+  status: z.enum(["agent_inferred", "human_confirmed", "open_question"]),
+  confidence: z.enum(["HIGH", "MED", "LOW"]),
+  evidenceRefs: z.array(z.string()),
+  candidateSignalIds: z.array(z.string()),
+  findingIds: z.array(z.string()),
+});
+
+export const AssessmentArtifactMetaSchema = z.object({
+  type: z.literal("semantic_assessment"),
+  factLayerRole: z.literal("deterministic_evidence_substrate"),
+  runtimeSignalsAreFinalFindings: z.literal(false),
+  finalFindingsSource: z.enum(["agent_review_required", "agent_review", "human_review"]),
+  note: z.string(),
+});
+
+export const IntentModelSummarySchema = z.object({
+  lifecycle: z.enum(["none", "inferred", "proposed", "confirmed", "mixed"]),
+  confirmedCapabilityCount: z.number(),
+  inferredCapabilityCount: z.number(),
+  proposedCapabilityCount: z.number(),
+  rejectedCapabilityCount: z.number(),
+  entries: z.array(z.object({
+    id: z.string(),
+    status: z.enum(["observed", "inferred_intent", "proposed_intent", "confirmed_intent", "rejected_intent"]),
+    label: z.string().optional(),
+  })),
 });
 
 export const AreaSchema = z.object({
@@ -166,6 +216,10 @@ export const AssessmentGraphSchema = z.object({
     analyzedAt: z.string(),
     gitCommitHash: z.string(),
   }),
+  artifact: AssessmentArtifactMetaSchema,
+  intentModel: IntentModelSummarySchema,
+  assessmentNodes: z.array(SemanticAssessmentNodeSchema),
+  candidateSignals: z.array(CandidateSignalSchema),
   intents: z.array(GraphNodeSchema),
   nodes: z.array(GraphNodeSchema),
   edges: z.array(GraphEdgeSchema),
@@ -176,6 +230,12 @@ export const AssessmentGraphSchema = z.object({
     bySeverity: z.record(z.number()),
     byCategory: z.record(z.number()),
     byDirection: z.record(z.number()),
+    candidateBySeverity: z.record(z.number()).optional(),
+    candidateByCategory: z.record(z.number()).optional(),
+    candidateByDirection: z.record(z.number()).optional(),
+    candidateSignalCount: z.number().optional(),
+    finalFindingCount: z.number().optional(),
+    assessmentNodeCount: z.number().optional(),
     headline: z.string(),
   }),
 });

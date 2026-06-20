@@ -29,7 +29,12 @@ export function FindingsView({ graph }: { graph: AssessmentGraph }) {
   return (
     <div className="findings">
       {findings.length === 0 && (
-        <p className="findings__empty">No findings match the current filters.</p>
+        <div className="findings__empty">
+          <p>No final findings match the current filters.</p>
+          {(graph.candidateSignals?.length ?? 0) > 0 && (
+            <p>{graph.candidateSignals.length} runtime candidate signal(s) exist, but they require agent semantic review before promotion.</p>
+          )}
+        </div>
       )}
       {findings.map((f) => {
         const sb = STRENGTH_BADGE[f.evidence.strength];
@@ -67,6 +72,7 @@ export function FindingsView({ graph }: { graph: AssessmentGraph }) {
                 )}%`}
               </p>
             )}
+            {f.reasoningSummary && <p className="finding__proof">{`reasoning: ${f.reasoningSummary}`}</p>}
             <p className="finding__rec">{`Fix: ${f.recommendation}`}</p>
           </article>
         );

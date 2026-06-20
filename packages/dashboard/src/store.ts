@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AssessmentGraph, Finding, GapDirection, Severity } from "@assess/core";
+import type { AssessmentGraph, CandidateSignal, Finding, GapDirection, Severity } from "@assess/core";
 
 // Single store for the dashboard. Loads assessment-graph.json once and exposes
 // the current view + filters. All three views derive from the same graph; they
@@ -7,7 +7,7 @@ import type { AssessmentGraph, Finding, GapDirection, Severity } from "@assess/c
 
 declare const __ASSESS_DEFAULT_GRAPH__: string;
 
-export type ViewMode = "coverage" | "gap" | "findings";
+export type ViewMode = "semantic" | "coverage" | "gap" | "findings";
 
 export interface Filters {
   directions: Set<GapDirection>;
@@ -47,7 +47,7 @@ export const useStore = create<DashboardState>((set, get) => ({
   loading: false,
   error: null,
   graphUrl: defaultGraphUrl(),
-  view: "coverage",
+  view: "semantic",
   selectedNodeId: null,
   selectedFindingId: null,
   filters: {
@@ -84,18 +84,28 @@ export const useStore = create<DashboardState>((set, get) => ({
 
 // ---- selectors (pure, testable) ----
 
+function passesFindingFilters<T extends Finding | CandidateSignal>(item: T, f: Filters): boolean {
+  if (!f.directions.has(item.direction)) return false;
+  if (f.minSeverity && SEV_RANK[item.severity] < SEV_RANK[f.minSeverity]) return false;
+  if (f.search) {
+    const q = f.search.toLowerCase();
+    if (!(`${item.id} ${item.claim} ${item.category}`.toLowerCase().includes(q))) return false;
+  }
+  return true;
+}
+
 export function visibleFindings(graph: AssessmentGraph, f: Filters): Finding[] {
-  return graph.findings.filter((fd) => {
-    if (!f.directions.has(fd.direction)) return false;
-    if (f.minSeverity && SEV_RANK[fd.severity] < SEV_RANK[f.minSeverity]) return false;
-    if (f.search) {
-      const q = f.search.toLowerCase();
-      if (!(`${fd.id} ${fd.claim} ${fd.category}`.toLowerCase().includes(q))) return false;
-    }
-    return true;
-  });
+  return graph.findings.filter((fd) => passesFindingFilters(fd, f));
+}
+
+export function visibleCandidateSignals(graph: AssessmentGraph, f: Filters): CandidateSignal[] {
+  return (graph.candidateSignals ?? []).filter((signal) => passesFindingFilters(signal, f));
 }
 
 export function findingById(graph: AssessmentGraph, id: string | null): Finding | null {
   return id ? graph.findings.find((f) => f.id === id) ?? null : null;
+}
+
+export function candidateSignalById(graph: AssessmentGraph, id: string | null): CandidateSignal | null {
+  return id ? (graph.candidateSignals ?? []).find((s) => s.id === id) ?? null : null;
 }

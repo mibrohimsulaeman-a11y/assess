@@ -1,4 +1,4 @@
-import type { AssessmentGraph, Finding } from "../types.js";
+import type { AssessmentGraph, CandidateSignal, Finding } from "../types.js";
 
 // Structural + honesty validation, run before the graph is written. Beyond Zod
 // (shape), these are the INVARIANTS that make the graph trustworthy:
@@ -16,6 +16,7 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
   const issues: ValidationIssue[] = [];
   const nodeIds = new Set([...graph.nodes, ...graph.intents].map((n) => n.id));
   const findingIds = new Set(graph.findings.map((f) => f.id));
+  const candidateSignalIds = new Set(graph.candidateSignals.map((s) => s.id));
 
   // referential integrity
   for (const e of graph.edges) {
@@ -23,19 +24,39 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
       nodeIds.has(id) || id === "baseline" || id === "intent:UNCONFIRMED";
     if (!knownEndpoint(e.source)) issues.push({ level: "error", code: "EDGE_SOURCE", message: `edge ${e.id} source ${e.source} not found` });
     if (!knownEndpoint(e.target)) issues.push({ level: "error", code: "EDGE_TARGET", message: `edge ${e.id} target ${e.target} not found` });
-    if (e.gap?.findingId && !findingIds.has(e.gap.findingId)) {
-      issues.push({ level: "error", code: "EDGE_FINDING", message: `edge ${e.id} references unknown finding ${e.gap.findingId}` });
+    if (e.gap?.findingId && !findingIds.has(e.gap.findingId) && !candidateSignalIds.has(e.gap.findingId)) {
+      issues.push({ level: "error", code: "EDGE_FINDING", message: `edge ${e.id} references unknown finding or candidate signal ${e.gap.findingId}` });
+    }
+    if (e.gap?.candidateSignalId && !candidateSignalIds.has(e.gap.candidateSignalId)) {
+      issues.push({ level: "error", code: "EDGE_CANDIDATE_SIGNAL", message: `edge ${e.id} references unknown candidate signal ${e.gap.candidateSignalId}` });
     }
   }
 
-  // finding target integrity
+  // finding / candidate target integrity
+  if (graph.artifact.finalFindingsSource === "agent_review_required" && graph.findings.length > 0) {
+    issues.push({ level: "error", code: "FINAL_FINDING_WITHOUT_REVIEW", message: "final findings present while artifact.finalFindingsSource is agent_review_required" });
+  }
   for (const f of graph.findings) {
     for (const t of f.targetNodeIds) {
       if (!nodeIds.has(t) && t !== "intent:UNCONFIRMED") {
         issues.push({ level: "error", code: "FINDING_TARGET", message: `finding ${f.id} target ${t} not found` });
       }
     }
+    if (f.source !== "agent_review" && f.source !== "human_review") {
+      issues.push({ level: "error", code: "FINAL_FINDING_SOURCE", message: `finding ${f.id} must declare source agent_review or human_review` });
+    }
+    if (!f.reasoningSummary || !f.evidenceRefs?.length) {
+      issues.push({ level: "error", code: "FINAL_FINDING_REASONING", message: `finding ${f.id} requires reasoningSummary and evidenceRefs` });
+    }
     issues.push(...honestyChecks(f));
+  }
+  for (const s of graph.candidateSignals) {
+    for (const t of s.targetNodeIds) {
+      if (!nodeIds.has(t) && t !== "intent:UNCONFIRMED") {
+        issues.push({ level: "error", code: "CANDIDATE_TARGET", message: `candidate signal ${s.id} target ${t} not found` });
+      }
+    }
+    issues.push(...honestyChecks(s));
   }
 
   // coverage completeness: every assessable node must carry a status
@@ -63,7 +84,7 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
   return issues;
 }
 
-function honestyChecks(f: Finding): ValidationIssue[] {
+function honestyChecks(f: Finding | CandidateSignal): ValidationIssue[] {
   const out: ValidationIssue[] = [];
   // missing / dead-code claims require a missing-code proof
   const claimsAbsence =

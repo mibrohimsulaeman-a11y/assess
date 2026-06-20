@@ -11,9 +11,8 @@ Steps the agent must follow:
 2. Call MCP tool `assess_repo` with `repoRoot: "."` and, if the user has an
    intent spec, `intentSpecPath`.
 3. Call `validate_graph` on the output; stop and report errors if invalid.
-4. Summarize: mode (intent-bound vs baseline-only), findings by severity,
+4. Summarize: mode (intent-bound vs baseline-only), final findings by severity and candidate signal count,
    headline trust, and the list of NOT-assessed areas.
 5. Point the user to the dashboard (`pnpm dev:dashboard`) to explore the graph.
 
-Never edit the repository. Never report a finding without deterministic evidence
-or a bounded missing-code proof.
+Never edit the repository. Never report a runtime candidate signal as a final finding without semantic review, evidence refs, and counter-evidence checks.

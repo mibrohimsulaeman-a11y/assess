@@ -113,8 +113,10 @@ export interface NodeAssessment {
   coverageStatus: CoverageStatus;
   ownership: OwnershipState;
   capabilityId?: string;
-  /** ids into AssessmentGraph.findings */
+  /** ids into AssessmentGraph.findings (final, curated findings only) */
   findingIds: string[];
+  /** ids into AssessmentGraph.candidateSignals (deterministic runtime signals, not final findings) */
+  candidateSignalIds?: string[];
   readiness: Readiness;
   /** worst open severity among findingIds, for dashboard coloring */
   worstSeverity?: Severity | null;
@@ -161,7 +163,10 @@ export interface EdgeGap {
     | "justified"   // code_to_intent: code maps to a confirmed intent
     | "unexplained" // code_to_intent: significant code, no intent
     | "violation";  // baseline_to_code: correctness/quality defect
+  /** final curated finding id; runtime should prefer candidateSignalId */
   findingId?: string;
+  /** deterministic runtime candidate signal id; requires agent review before it becomes a finding */
+  candidateSignalId?: string;
 }
 
 export interface GraphEdge {
@@ -195,6 +200,58 @@ export interface Finding {
   /** node ids this finding is attached to */
   targetNodeIds: string[];
   binding: Binding & Partial<Pick<SpanBinding, "spanSha256" | "normalizedFingerprint">>;
+  /** Final findings must come from agent/human semantic review, never directly from runtime signals. */
+  source?: "agent_review" | "human_review";
+  reasoningSummary?: string;
+  evidenceRefs?: string[];
+  counterEvidenceChecked?: string[];
+  openQuestions?: string[];
+}
+
+export interface CandidateSignal extends Omit<Finding, "source"> {
+  source: "runtime_candidate";
+  reviewStatus: "needs_agent_review" | "accepted" | "rejected";
+  signalKind: "deterministic_gap" | "baseline_signal";
+  evidenceRefs: string[];
+  counterEvidenceChecked: string[];
+  openQuestions: string[];
+  promotedFindingId?: string;
+}
+
+export type SemanticAssessmentNodeKind =
+  | "capability"
+  | "workflow"
+  | "risk_area"
+  | "open_question"
+  | "evidence_bundle";
+
+export interface SemanticAssessmentNode {
+  id: string;
+  kind: SemanticAssessmentNodeKind;
+  name: string;
+  summary: string;
+  status: "agent_inferred" | "human_confirmed" | "open_question";
+  confidence: Confidence;
+  evidenceRefs: string[];
+  candidateSignalIds: string[];
+  findingIds: string[];
+}
+
+export interface AssessmentArtifactMeta {
+  type: "semantic_assessment";
+  factLayerRole: "deterministic_evidence_substrate";
+  runtimeSignalsAreFinalFindings: false;
+  finalFindingsSource: "agent_review_required" | "agent_review" | "human_review";
+  note: string;
+}
+
+export interface IntentModelSummary {
+  lifecycle: "none" | "inferred" | "proposed" | "confirmed" | "mixed";
+  confirmedCapabilityCount: number;
+  inferredCapabilityCount: number;
+  proposedCapabilityCount: number;
+  rejectedCapabilityCount: number;
+  entries: Array<{ id: string; status: "observed" | "inferred_intent" | "proposed_intent" | "confirmed_intent" | "rejected_intent"; label?: string }>;
 }
 
 // ---------- area + coverage manifest ----------
@@ -222,9 +279,16 @@ export interface CoverageManifest {
 }
 
 export interface AssessmentSummary {
+  /** Final curated findings only. Runtime candidate signals are counted separately. */
   bySeverity: Record<Severity, number>;
   byCategory: Record<string, number>;
   byDirection: Record<GapDirection, number>;
+  candidateBySeverity?: Record<Severity, number>;
+  candidateByCategory?: Record<string, number>;
+  candidateByDirection?: Record<GapDirection, number>;
+  candidateSignalCount?: number;
+  finalFindingCount?: number;
+  assessmentNodeCount?: number;
   headline: string;
 }
 
@@ -244,6 +308,12 @@ export interface AssessmentGraph {
   kind: "assessment";
   binding: Binding;
   project: ProjectMeta;
+  artifact: AssessmentArtifactMeta;
+  intentModel: IntentModelSummary;
+  /** semantic layer curated by agent/human review; deterministic runtime leaves this empty */
+  assessmentNodes: SemanticAssessmentNode[];
+  /** deterministic runtime signals; not final findings until promoted by agent/human review */
+  candidateSignals: CandidateSignal[];
   /** the should-be: capability + intent (process) nodes live in `nodes`, mirrored here for quick access */
   intents: GraphNode[];
   /** fact layer: component nodes (code + non-code), with assessment overlay */

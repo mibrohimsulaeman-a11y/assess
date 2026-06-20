@@ -2,6 +2,7 @@ import type {
   AssessmentGraph,
   Area,
   Binding,
+  CandidateSignal,
   Finding,
   GraphEdge,
   GraphNode,
@@ -69,7 +70,8 @@ export function assembleGraph(input: AssembleInput): AssessmentGraph {
       assessment: {
         coverageStatus: notAssessedReason ? "not_assessed" : "assessed",
         ownership,
-        findingIds: nodeFindings.map((f) => f.id),
+        findingIds: [],
+        candidateSignalIds: nodeFindings.map((f) => f.id),
         readiness: notAssessedReason ? "unknown" : readinessFor(worst),
         worstSeverity: worst,
         trust,
@@ -103,25 +105,51 @@ export function assembleGraph(input: AssembleInput): AssessmentGraph {
   });
 
   const edges = [...input.factEdges, ...input.gapEdges];
+  const candidateSignals = input.findings.map((f): CandidateSignal => ({
+    ...f,
+    source: "runtime_candidate",
+    reviewStatus: "needs_agent_review",
+    signalKind: f.direction === "baseline_to_code" ? "baseline_signal" : "deterministic_gap",
+    evidenceRefs: [f.id, ...(f.targetNodeIds ?? [])],
+    counterEvidenceChecked: ["typed assemble helper only; no semantic review pass has run"],
+    openQuestions: ["Agent semantic review must decide whether this signal becomes a final finding."],
+  }));
   const coverage = buildCoverageManifest({ nodes: componentNodes, areas, findings: input.findings });
-  const summary = summarize(input.findings, coverage.headlineTrust);
+  const summary = summarize([], candidateSignals, coverage.headlineTrust);
 
   return {
-    version: "2.0.0",
+    version: "3.0.0",
     kind: "assessment",
     binding: input.binding,
     project: input.project,
+    artifact: {
+      type: "semantic_assessment",
+      factLayerRole: "deterministic_evidence_substrate",
+      runtimeSignalsAreFinalFindings: false,
+      finalFindingsSource: "agent_review_required",
+      note: "Typed assemble helper emits candidateSignals only; final findings require semantic review.",
+    },
+    intentModel: {
+      lifecycle: input.intentNodes.length ? "confirmed" : "none",
+      confirmedCapabilityCount: input.intentNodes.filter((n) => n.type === "capability").length,
+      inferredCapabilityCount: 0,
+      proposedCapabilityCount: 0,
+      rejectedCapabilityCount: 0,
+      entries: input.intentNodes.map((n) => ({ id: n.id, status: "confirmed_intent", label: n.name })),
+    },
+    assessmentNodes: [],
+    candidateSignals,
     intents: input.intentNodes,
     nodes: componentNodes,
     edges,
-    findings: input.findings,
+    findings: [],
     areas,
     coverage,
     summary,
   };
 }
 
-function summarize(findings: Finding[], trust: string): AssessmentSummary {
+function countFindings(findings: Array<Finding | CandidateSignal>) {
   const bySeverity: Record<Severity, number> = { P0: 0, P1: 0, P2: 0, P3: 0 };
   const byCategory: Record<string, number> = {};
   const byDirection: Record<GapDirection, number> = {
@@ -132,9 +160,23 @@ function summarize(findings: Finding[], trust: string): AssessmentSummary {
     byCategory[f.category] = (byCategory[f.category] ?? 0) + 1;
     byDirection[f.direction]++;
   }
+  return { bySeverity, byCategory, byDirection };
+}
+
+function summarize(finalFindings: Finding[], candidateSignals: CandidateSignal[], trust: string): AssessmentSummary {
+  const finalCounts = countFindings(finalFindings);
+  const candidateCounts = countFindings(candidateSignals);
   const headline =
-    `${bySeverity.P0} P0 / ${bySeverity.P1} P1 across ` +
-    `${byDirection.intent_to_code} intent→code, ${byDirection.code_to_intent} code→intent, ` +
-    `${byDirection.baseline_to_code} baseline findings (headline trust: ${trust}).`;
-  return { bySeverity, byCategory, byDirection, headline };
+    `semantic assessment shell: ${candidateSignals.length} runtime candidate signal(s), ` +
+    `${finalFindings.length} final finding(s); agent semantic review required (headline trust: ${trust}).`;
+  return {
+    ...finalCounts,
+    candidateBySeverity: candidateCounts.bySeverity,
+    candidateByCategory: candidateCounts.byCategory,
+    candidateByDirection: candidateCounts.byDirection,
+    candidateSignalCount: candidateSignals.length,
+    finalFindingCount: finalFindings.length,
+    assessmentNodeCount: 0,
+    headline,
+  };
 }

@@ -4,8 +4,9 @@
 
 `assess` judges a repository against what it is supposed to do, then emits an
 `assessment-graph.json` that can be rendered as a dashboard. The graph is not a
-code tour. It is a gap map: what is implemented, what is missing, what is
-unexplained, what violates the baseline, and what was not assessed.
+code tour. It is a semantic assessment cockpit: runtime facts and candidate
+signals are evidence substrate, while final findings and semantic nodes must be
+produced by an agent/human review pass.
 
 > Knowledge-graph tools help you understand a codebase. `assess` helps you
 > decide whether the codebase can honestly claim that it satisfies its intent.
@@ -27,7 +28,7 @@ bottleneck from writing code to verifying claims about code:
 
 `assess` is designed as an assessment layer. It can complement comprehension
 systems, PR reviewers, static analyzers, and coverage tools by turning their
-facts into evidence-bound findings.
+facts into evidence-bound candidate signals, then giving an agent/human reviewer a disciplined promotion path into final findings.
 
 ---
 
@@ -54,7 +55,7 @@ Optional:         tiny CLI shim for CI/debug only (assess-run.mjs)
 The agent never judges your code freely. It calls the deterministic boundary:
 
 ```text
-read repo -> build index -> generate assessment graph -> validate evidence -> return findings
+read repo -> build fact index -> emit candidate signals -> agent semantic review -> final findings
 ```
 
 ## Current status
@@ -63,29 +64,32 @@ This repository is an early but **executable** open-source implementation. The
 source of truth for actual assessment runs is the zero-dependency runtime, not
 the typed helper modules:
 
-- `@assess/core`: graph contract, schemas, validator, fact-layer primitives, and
-  typed reference helpers. It is not the production scanner/runtime pipeline by
-  itself.
-- **`packages/core/runtime/engine.mjs`**: the executable headless assessment
-  engine — it scans a real TS/JS repo, builds the index, runs the currently
-  implemented gap directions, assembles and validates an `assessment-graph.json`.
-  Runs with plain `node`, before anything is installed.
+- `@assess/core`: semantic graph contract, schemas, validator, fact-layer
+  primitives, and typed reference helpers. It is not the production
+  scanner/runtime pipeline by itself.
+- **`packages/core/runtime/engine.mjs`**: the executable headless fact-layer
+  engine — it scans a real TS/JS repo, builds the deterministic index, emits
+  `candidateSignals`, assembles a semantic assessment shell, and validates it.
+  It does **not** create final findings. Runs with plain `node`, before anything
+  is installed.
 - **`plugins/assess/mcp/assess-server.mjs`**: a zero-dependency MCP server
   (JSON-RPC over stdio) exposing `assess_repo`, `validate_graph`,
   `list_findings`, `explain_finding`, `export_report`.
 - **`plugins/assess/`**: Claude Code plugin surfaces — commands (`/assess:assess`,
   `/assess:assess-pr`, `/assess:explain-finding`), skills, agents, and hooks.
-- `@assess/dashboard`: a React/ReactFlow dashboard (coverage map / gap map /
-  findings) for the assessment graph.
+- `@assess/dashboard`: a React/ReactFlow dashboard whose default view is the
+  semantic assessment layer; fact coverage and runtime gap signals are drilldown
+  views.
 - Zero-dependency honesty-gate fixtures proving the validator on sample graphs.
 
 Honest limitation: the TS/JS scanner is a deterministic MVP (regex + brace
 matching). It does not yet implement a real AST/call graph, broad route parsing,
-or behavioral partial/misaligned analysis. The typed `src/**` modules are
-reference helpers and contracts; `packages/core/runtime/engine.mjs` is the
-executable source of truth for generated assessment graphs. The engine and MCP
-server are proven to run end-to-end with `node`; full workspace build is
-validated through the pnpm build pipeline when dependencies are installed.
+or behavioral partial/misaligned analysis. Runtime output is intentionally
+candidate-only: `findings` remain empty until an agent/human semantic review
+promotes a signal with evidence refs, counter-evidence checks, and a reasoning
+summary. The engine and MCP server are proven to run end-to-end with `node`; full
+workspace build is validated through the pnpm build pipeline when dependencies
+are installed.
 
 ---
 
@@ -139,10 +143,11 @@ It emits findings in three directions:
 The core rule: a finding must not claim more than its evidence supports.
 
 The runtime currently emits missing, unexplained, and baseline-violation
-findings from deterministic TS/JS indexing. The typed helper API still names
-`partial` and `misaligned` verdict shapes because the graph contract supports
-them, but the runtime does not claim behavioral partial/misaligned detection
-until stronger analysis exists.
+**candidate signals** from deterministic TS/JS indexing. The typed helper API
+still names `partial` and `misaligned` verdict shapes because the graph contract
+supports them, but the runtime does not claim behavioral partial/misaligned
+detection until stronger analysis exists. Final findings are agent/human-review
+artifacts only.
 
 ---
 
@@ -233,11 +238,14 @@ The skill contract is present in `skills/assess/SKILL.md`.
 
 ## Dashboard views
 
-The dashboard is the post-run cockpit for the generated `assessment-graph.json`. It starts with a run summary (headline, commit, trust, coverage percentage, finding count, and severity split), then renders the same graph three ways:
+The dashboard is the post-run cockpit for the generated `assessment-graph.json`.
+It starts with the semantic layer, then exposes deterministic evidence as
+drilldown:
 
-- **Coverage map** — every area and node by assessment status.
-- **Gap map** — intent-side and code-side nodes connected by gap edges.
-- **Findings** — ranked evidence-bound verdicts with severity and proof status.
+- **Semantic assessment** — curated semantic nodes and final findings. Runtime-only runs show why agent review is still required.
+- **Final findings** — agent/human-reviewed verdicts only.
+- **Fact gap signals** — deterministic `candidateSignals`; useful evidence, not final findings.
+- **Fact coverage** — every area and node by deterministic coverage status.
 
 ---
 

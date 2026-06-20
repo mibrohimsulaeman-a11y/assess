@@ -1,10 +1,10 @@
 {
-  "version": "2.0.0",
+  "version": "3.0.0",
   "kind": "assessment",
   "binding": {
-    "assessedAtCommit": "717356b",
+    "assessedAtCommit": "0f009ad",
     "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-    "generated": "2026-06-19T23:41:10.878Z"
+    "generated": "2026-06-20T00:01:18.116Z"
   },
   "project": {
     "name": "src",
@@ -12,10 +12,1331 @@
       "TypeScript"
     ],
     "frameworks": [],
-    "description": "intent-bound assessment",
-    "analyzedAt": "2026-06-19T23:41:10.878Z",
-    "gitCommitHash": "717356b"
+    "description": "semantic assessment shell: confirmed intent supplied; runtime emitted candidate signals for agent review",
+    "analyzedAt": "2026-06-20T00:01:18.116Z",
+    "gitCommitHash": "0f009ad"
   },
+  "artifact": {
+    "type": "semantic_assessment",
+    "factLayerRole": "deterministic_evidence_substrate",
+    "runtimeSignalsAreFinalFindings": false,
+    "finalFindingsSource": "agent_review_required",
+    "note": "Runtime emits fact nodes and candidateSignals only. Final findings and semantic assessment nodes must be produced by an agent/human review pass with evidence refs and counter-evidence checks."
+  },
+  "intentModel": {
+    "lifecycle": "confirmed",
+    "confirmedCapabilityCount": 2,
+    "inferredCapabilityCount": 0,
+    "proposedCapabilityCount": 0,
+    "rejectedCapabilityCount": 0,
+    "entries": [
+      {
+        "id": "capability:honesty-gate",
+        "status": "confirmed_intent",
+        "label": "Honesty gate"
+      },
+      {
+        "id": "intent:honesty-gate.cap-severity",
+        "status": "confirmed_intent",
+        "label": "Cap severity by evidence strength"
+      },
+      {
+        "id": "intent:honesty-gate.prove-absence",
+        "status": "confirmed_intent",
+        "label": "Prove absence before claiming missing"
+      },
+      {
+        "id": "capability:coverage-manifest",
+        "status": "confirmed_intent",
+        "label": "Coverage manifest"
+      },
+      {
+        "id": "intent:coverage-manifest.account-every-node",
+        "status": "confirmed_intent",
+        "label": "Account for every assessable node"
+      },
+      {
+        "id": "intent:coverage-manifest.reconcile-spans",
+        "status": "confirmed_intent",
+        "label": "Reconcile prior verdicts across reformat-only changes"
+      }
+    ]
+  },
+  "assessmentNodes": [],
+  "candidateSignals": [
+    {
+      "id": "A-001",
+      "direction": "intent_to_code",
+      "category": "alignment.missing",
+      "claim": "Promised \"Reconcile prior verdicts across reformat-only changes\" has no implementing path found in the index",
+      "evidence": {
+        "fact": "expected component function:overlay/reconcile.ts:reconcilePriorRun not present in index",
+        "strength": "inferred",
+        "signals": [
+          "invariant: a reformat (same normalized fingerprint) must reuse the prior verdict, not re-judge"
+        ]
+      },
+      "intentRef": "intent:coverage-manifest.reconcile-spans",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "absence not_found_in_index -> <=P2",
+      "recommendation": "Implement the promised behavior or retract the claim from intent.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "scanner cannot resolve dynamic/computed/re-exported symbols"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:overlay/reconcile.ts:reconcilePriorRun",
+        "intent:coverage-manifest.reconcile-spans"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-001",
+        "function:overlay/reconcile.ts:reconcilePriorRun",
+        "intent:coverage-manifest.reconcile-spans",
+        "intent:intent:coverage-manifest.reconcile-spans"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-002",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/coverage.ts:29-43 function areaCoverage",
+        "strength": "verified",
+        "filePath": "assess/coverage.ts",
+        "lineRange": [
+          29,
+          43
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/coverage.ts:areaCoverage"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-002",
+        "function:assess/coverage.ts:areaCoverage",
+        "intent:UNCONFIRMED",
+        "file:assess/coverage.ts:29-43"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-003",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/gap-engine.ts:101-187 function assessIntentToCode",
+        "strength": "verified",
+        "filePath": "assess/gap-engine.ts",
+        "lineRange": [
+          101,
+          187
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/gap-engine.ts:assessIntentToCode"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-003",
+        "function:assess/gap-engine.ts:assessIntentToCode",
+        "intent:UNCONFIRMED",
+        "file:assess/gap-engine.ts:101-187"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-004",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/gap-engine.ts:190-232 function assessCodeToIntent",
+        "strength": "verified",
+        "filePath": "assess/gap-engine.ts",
+        "lineRange": [
+          190,
+          232
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/gap-engine.ts:assessCodeToIntent"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-004",
+        "function:assess/gap-engine.ts:assessCodeToIntent",
+        "intent:UNCONFIRMED",
+        "file:assess/gap-engine.ts:190-232"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-005",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/gap-engine.ts:235-271 function assessBaseline",
+        "strength": "verified",
+        "filePath": "assess/gap-engine.ts",
+        "lineRange": [
+          235,
+          271
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/gap-engine.ts:assessBaseline"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-005",
+        "function:assess/gap-engine.ts:assessBaseline",
+        "intent:UNCONFIRMED",
+        "file:assess/gap-engine.ts:235-271"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-006",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/missing-code-proof.ts:52-61 function absenceWording",
+        "strength": "verified",
+        "filePath": "assess/missing-code-proof.ts",
+        "lineRange": [
+          52,
+          61
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/missing-code-proof.ts:absenceWording"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-006",
+        "function:assess/missing-code-proof.ts:absenceWording",
+        "intent:UNCONFIRMED",
+        "file:assess/missing-code-proof.ts:52-61"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-007",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "assess/severity.ts:103-110 function headlineTrust",
+        "strength": "verified",
+        "filePath": "assess/severity.ts",
+        "lineRange": [
+          103,
+          110
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:assess/severity.ts:headlineTrust"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-007",
+        "function:assess/severity.ts:headlineTrust",
+        "intent:UNCONFIRMED",
+        "file:assess/severity.ts:103-110"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-008",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:181-192 function bindSpan",
+        "strength": "verified",
+        "filePath": "fact-layer/fingerprint.ts",
+        "lineRange": [
+          181,
+          192
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/fingerprint.ts:bindSpan"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-008",
+        "function:fact-layer/fingerprint.ts:bindSpan",
+        "intent:UNCONFIRMED",
+        "file:fact-layer/fingerprint.ts:181-192"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-009",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/fingerprint.ts:200-208 function reconcileSpan",
+        "strength": "verified",
+        "filePath": "fact-layer/fingerprint.ts",
+        "lineRange": [
+          200,
+          208
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/fingerprint.ts:reconcileSpan"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-009",
+        "function:fact-layer/fingerprint.ts:reconcileSpan",
+        "intent:UNCONFIRMED",
+        "file:fact-layer/fingerprint.ts:200-208"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-010",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:28-46 function deriveOwnership",
+        "strength": "verified",
+        "filePath": "fact-layer/index-builder.ts",
+        "lineRange": [
+          28,
+          46
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/index-builder.ts:deriveOwnership"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-010",
+        "function:fact-layer/index-builder.ts:deriveOwnership",
+        "intent:UNCONFIRMED",
+        "file:fact-layer/index-builder.ts:28-46"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-011",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:48-59 function toGraphNode",
+        "strength": "verified",
+        "filePath": "fact-layer/index-builder.ts",
+        "lineRange": [
+          48,
+          59
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/index-builder.ts:toGraphNode"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-011",
+        "function:fact-layer/index-builder.ts:toGraphNode",
+        "intent:UNCONFIRMED",
+        "file:fact-layer/index-builder.ts:48-59"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-012",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/index-builder.ts:61-71 function toGraphEdge",
+        "strength": "verified",
+        "filePath": "fact-layer/index-builder.ts",
+        "lineRange": [
+          61,
+          71
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/index-builder.ts:toGraphEdge"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-012",
+        "function:fact-layer/index-builder.ts:toGraphEdge",
+        "intent:UNCONFIRMED",
+        "file:fact-layer/index-builder.ts:61-71"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-013",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/scan.ts:58-70 function partitionAreas",
+        "strength": "verified",
+        "filePath": "fact-layer/scan.ts",
+        "lineRange": [
+          58,
+          70
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/scan.ts:partitionAreas"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-013",
+        "function:fact-layer/scan.ts:partitionAreas",
+        "intent:UNCONFIRMED",
+        "file:fact-layer/scan.ts:58-70"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-014",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "fact-layer/scan.ts:72-80 function buildScanResult",
+        "strength": "verified",
+        "filePath": "fact-layer/scan.ts",
+        "lineRange": [
+          72,
+          80
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:fact-layer/scan.ts:buildScanResult"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-014",
+        "function:fact-layer/scan.ts:buildScanResult",
+        "intent:UNCONFIRMED",
+        "file:fact-layer/scan.ts:72-80"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-015",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "intent/intent-spec.ts:34-49 function hashIntentSpec",
+        "strength": "verified",
+        "filePath": "intent/intent-spec.ts",
+        "lineRange": [
+          34,
+          49
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:intent/intent-spec.ts:hashIntentSpec"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-015",
+        "function:intent/intent-spec.ts:hashIntentSpec",
+        "intent:UNCONFIRMED",
+        "file:intent/intent-spec.ts:34-49"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-016",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "intent/intent-spec.ts:52-81 function intentNodes",
+        "strength": "verified",
+        "filePath": "intent/intent-spec.ts",
+        "lineRange": [
+          52,
+          81
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:intent/intent-spec.ts:intentNodes"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-016",
+        "function:intent/intent-spec.ts:intentNodes",
+        "intent:UNCONFIRMED",
+        "file:intent/intent-spec.ts:52-81"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-017",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "intent/intent-spec.ts:84-100 function toExpectations",
+        "strength": "verified",
+        "filePath": "intent/intent-spec.ts",
+        "lineRange": [
+          84,
+          100
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:intent/intent-spec.ts:toExpectations"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-017",
+        "function:intent/intent-spec.ts:toExpectations",
+        "intent:UNCONFIRMED",
+        "file:intent/intent-spec.ts:84-100"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-018",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "overlay/assemble.ts:49-150 function assembleGraph",
+        "strength": "verified",
+        "filePath": "overlay/assemble.ts",
+        "lineRange": [
+          49,
+          150
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:overlay/assemble.ts:assembleGraph"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-018",
+        "function:overlay/assemble.ts:assembleGraph",
+        "intent:UNCONFIRMED",
+        "file:overlay/assemble.ts:49-150"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    },
+    {
+      "id": "A-019",
+      "direction": "code_to_intent",
+      "category": "alignment.unexplained",
+      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+      "evidence": {
+        "fact": "overlay/validate.ts:15-64 function validateAssessmentGraph",
+        "strength": "verified",
+        "filePath": "overlay/validate.ts",
+        "lineRange": [
+          15,
+          64
+        ]
+      },
+      "intentRef": "UNCONFIRMED",
+      "severity": "P2",
+      "confidence": "MED",
+      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
+      "missingCodeProof": {
+        "result": "not_found_in_index",
+        "searchedRoots": [
+          "."
+        ],
+        "excludedRoots": [
+          "node_modules",
+          "dist",
+          "build"
+        ],
+        "requiredRecordTypes": [
+          "symbol"
+        ],
+        "coverage": {
+          "required": 1,
+          "actual": 1
+        },
+        "lowConfidenceResidues": [
+          "intent spec may be incomplete or owner intent may be unconfirmed"
+        ],
+        "residuesRuledIrrelevant": []
+      },
+      "targetNodeIds": [
+        "function:overlay/validate.ts:validateAssessmentGraph"
+      ],
+      "binding": {
+        "assessedAtCommit": "0f009ad",
+        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
+        "generated": "2026-06-20T00:01:18.116Z"
+      },
+      "source": "runtime_candidate",
+      "reviewStatus": "needs_agent_review",
+      "signalKind": "deterministic_gap",
+      "evidenceRefs": [
+        "candidate:A-019",
+        "function:overlay/validate.ts:validateAssessmentGraph",
+        "intent:UNCONFIRMED",
+        "file:overlay/validate.ts:15-64"
+      ],
+      "counterEvidenceChecked": [
+        "searched roots: .",
+        "required records: symbol",
+        "absence result: not_found_in_index"
+      ],
+      "openQuestions": [
+        "Agent semantic review must decide whether this signal is a high-quality final finding."
+      ]
+    }
+  ],
   "intents": [
     {
       "id": "capability:honesty-gate",
@@ -128,6 +1449,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -150,6 +1472,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -171,7 +1494,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-002"
         ],
         "readiness": "partial",
@@ -197,6 +1521,7 @@
         "coverageStatus": "assessed",
         "ownership": "overclaimed",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -219,6 +1544,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -235,6 +1561,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -257,6 +1584,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -279,6 +1607,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -301,6 +1630,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -323,6 +1653,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -344,7 +1675,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-003"
         ],
         "readiness": "partial",
@@ -369,7 +1701,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-004"
         ],
         "readiness": "partial",
@@ -394,7 +1727,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-005"
         ],
         "readiness": "partial",
@@ -414,6 +1748,7 @@
         "coverageStatus": "assessed",
         "ownership": "unowned",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -436,6 +1771,7 @@
         "coverageStatus": "assessed",
         "ownership": "overclaimed",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -457,7 +1793,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-006"
         ],
         "readiness": "partial",
@@ -477,6 +1814,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -499,6 +1837,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -521,6 +1860,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -543,6 +1883,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -565,6 +1906,7 @@
         "coverageStatus": "assessed",
         "ownership": "overclaimed",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -586,7 +1928,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-007"
         ],
         "readiness": "partial",
@@ -606,6 +1949,7 @@
         "coverageStatus": "assessed",
         "ownership": "unowned",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -628,6 +1972,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -650,6 +1995,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -672,6 +2018,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -694,6 +2041,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -716,6 +2064,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -738,6 +2087,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -759,7 +2109,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-008"
         ],
         "readiness": "partial",
@@ -784,7 +2135,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-009"
         ],
         "readiness": "partial",
@@ -804,6 +2156,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -825,7 +2178,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-010"
         ],
         "readiness": "partial",
@@ -850,7 +2204,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-011"
         ],
         "readiness": "partial",
@@ -875,7 +2230,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-012"
         ],
         "readiness": "partial",
@@ -901,6 +2257,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -917,6 +2274,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -939,6 +2297,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -961,6 +2320,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -982,7 +2342,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-013"
         ],
         "readiness": "partial",
@@ -1007,7 +2368,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-014"
         ],
         "readiness": "partial",
@@ -1027,6 +2389,7 @@
         "coverageStatus": "assessed",
         "ownership": "unowned",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1043,6 +2406,7 @@
         "coverageStatus": "assessed",
         "ownership": "unowned",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1064,7 +2428,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-015"
         ],
         "readiness": "partial",
@@ -1089,7 +2454,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-016"
         ],
         "readiness": "partial",
@@ -1114,7 +2480,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-017"
         ],
         "readiness": "partial",
@@ -1127,13 +2494,14 @@
       "type": "file",
       "name": "assemble.ts",
       "filePath": "overlay/assemble.ts",
-      "summary": "TypeScript file, 141 lines, 3 symbol(s)",
+      "summary": "TypeScript file, 183 lines, 4 symbol(s)",
       "tags": [],
       "complexity": "simple",
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "unowned",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1144,8 +2512,8 @@
       "name": "readinessFor",
       "filePath": "overlay/assemble.ts",
       "lineRange": [
-        41,
-        46
+        42,
+        47
       ],
       "summary": "function readinessFor (6 lines)",
       "tags": [
@@ -1156,6 +2524,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1166,10 +2535,10 @@
       "name": "assembleGraph",
       "filePath": "overlay/assemble.ts",
       "lineRange": [
-        48,
-        122
+        49,
+        150
       ],
-      "summary": "function assembleGraph (75 lines, exported)",
+      "summary": "function assembleGraph (102 lines, exported)",
       "tags": [
         "exported"
       ],
@@ -1177,7 +2546,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-018"
         ],
         "readiness": "partial",
@@ -1186,13 +2556,36 @@
       }
     },
     {
+      "id": "function:overlay/assemble.ts:countFindings",
+      "type": "function",
+      "name": "countFindings",
+      "filePath": "overlay/assemble.ts",
+      "lineRange": [
+        152,
+        164
+      ],
+      "summary": "function countFindings (13 lines)",
+      "tags": [
+        "internal"
+      ],
+      "complexity": "simple",
+      "assessment": {
+        "coverageStatus": "assessed",
+        "ownership": "hidden",
+        "findingIds": [],
+        "candidateSignalIds": [],
+        "readiness": "ready",
+        "worstSeverity": null
+      }
+    },
+    {
       "id": "function:overlay/assemble.ts:summarize",
       "type": "function",
       "name": "summarize",
       "filePath": "overlay/assemble.ts",
       "lineRange": [
-        124,
-        140
+        166,
+        182
       ],
       "summary": "function summarize (17 lines)",
       "tags": [
@@ -1203,6 +2596,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1219,6 +2613,7 @@
         "coverageStatus": "assessed",
         "ownership": "unowned",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1240,7 +2635,8 @@
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-019"
         ],
         "readiness": "partial",
@@ -1266,6 +2662,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1288,6 +2685,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1310,6 +2708,7 @@
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1319,13 +2718,14 @@
       "type": "file",
       "name": "schema.ts",
       "filePath": "schema.ts",
-      "summary": "TypeScript file, 184 lines, 0 symbol(s)",
+      "summary": "TypeScript file, 244 lines, 0 symbol(s)",
       "tags": [],
       "complexity": "simple",
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "unowned",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1335,13 +2735,14 @@
       "type": "file",
       "name": "types.ts",
       "filePath": "types.ts",
-      "summary": "TypeScript file, 258 lines, 0 symbol(s)",
+      "summary": "TypeScript file, 328 lines, 0 symbol(s)",
       "tags": [],
       "complexity": "simple",
       "assessment": {
         "coverageStatus": "assessed",
         "ownership": "hidden",
         "findingIds": [],
+        "candidateSignalIds": [],
         "readiness": "ready",
         "worstSeverity": null
       }
@@ -1358,7 +2759,8 @@
       "assessment": {
         "coverageStatus": "not_assessed",
         "ownership": "unowned",
-        "findingIds": [
+        "findingIds": [],
+        "candidateSignalIds": [
           "A-001"
         ],
         "readiness": "blocked",
@@ -1784,7 +3186,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "overlay/assemble.ts:41 declares readinessFor"
+        "fact": "overlay/assemble.ts:42 declares readinessFor"
       }
     },
     {
@@ -1795,7 +3197,18 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "overlay/assemble.ts:48 declares assembleGraph"
+        "fact": "overlay/assemble.ts:49 declares assembleGraph"
+      }
+    },
+    {
+      "id": "edge:contains:file:overlay/assemble.ts->function:overlay/assemble.ts:countFindings",
+      "source": "file:overlay/assemble.ts",
+      "target": "function:overlay/assemble.ts:countFindings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 0.8,
+      "evidence": {
+        "fact": "overlay/assemble.ts:152 declares countFindings"
       }
     },
     {
@@ -1806,7 +3219,7 @@
       "direction": "forward",
       "weight": 0.8,
       "evidence": {
-        "fact": "overlay/assemble.ts:124 declares summarize"
+        "fact": "overlay/assemble.ts:166 declares summarize"
       }
     },
     {
@@ -2040,7 +3453,7 @@
       "gap": {
         "direction": "intent_to_code",
         "status": "missing",
-        "findingId": "A-001"
+        "candidateSignalId": "A-001"
       },
       "evidence": {
         "fact": "A-001"
@@ -2056,7 +3469,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-002"
+        "candidateSignalId": "A-002"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2087,7 +3500,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-003"
+        "candidateSignalId": "A-003"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2103,7 +3516,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-004"
+        "candidateSignalId": "A-004"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2119,7 +3532,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-005"
+        "candidateSignalId": "A-005"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2150,7 +3563,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-006"
+        "candidateSignalId": "A-006"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2181,7 +3594,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-007"
+        "candidateSignalId": "A-007"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2197,7 +3610,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-008"
+        "candidateSignalId": "A-008"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2213,7 +3626,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-009"
+        "candidateSignalId": "A-009"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2229,7 +3642,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-010"
+        "candidateSignalId": "A-010"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2245,7 +3658,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-011"
+        "candidateSignalId": "A-011"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2261,7 +3674,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-012"
+        "candidateSignalId": "A-012"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2277,7 +3690,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-013"
+        "candidateSignalId": "A-013"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2293,7 +3706,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-014"
+        "candidateSignalId": "A-014"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2309,7 +3722,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-015"
+        "candidateSignalId": "A-015"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2325,7 +3738,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-016"
+        "candidateSignalId": "A-016"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2341,7 +3754,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-017"
+        "candidateSignalId": "A-017"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2357,7 +3770,7 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-018"
+        "candidateSignalId": "A-018"
       },
       "evidence": {
         "fact": "no confirmed intent"
@@ -2373,964 +3786,14 @@
       "gap": {
         "direction": "code_to_intent",
         "status": "unexplained",
-        "findingId": "A-019"
+        "candidateSignalId": "A-019"
       },
       "evidence": {
         "fact": "no confirmed intent"
       }
     }
   ],
-  "findings": [
-    {
-      "id": "A-001",
-      "direction": "intent_to_code",
-      "category": "alignment.missing",
-      "claim": "Promised \"Reconcile prior verdicts across reformat-only changes\" has no implementing path found in the index",
-      "evidence": {
-        "fact": "expected component function:overlay/reconcile.ts:reconcilePriorRun not present in index",
-        "strength": "inferred",
-        "signals": [
-          "invariant: a reformat (same normalized fingerprint) must reuse the prior verdict, not re-judge"
-        ]
-      },
-      "intentRef": "intent:coverage-manifest.reconcile-spans",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "absence not_found_in_index -> <=P2",
-      "recommendation": "Implement the promised behavior or retract the claim from intent.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "scanner cannot resolve dynamic/computed/re-exported symbols"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:overlay/reconcile.ts:reconcilePriorRun",
-        "intent:coverage-manifest.reconcile-spans"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-002",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "assess/coverage.ts:29-43 function areaCoverage",
-        "strength": "verified",
-        "filePath": "assess/coverage.ts",
-        "lineRange": [
-          29,
-          43
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:assess/coverage.ts:areaCoverage"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-003",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "assess/gap-engine.ts:101-187 function assessIntentToCode",
-        "strength": "verified",
-        "filePath": "assess/gap-engine.ts",
-        "lineRange": [
-          101,
-          187
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:assess/gap-engine.ts:assessIntentToCode"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-004",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "assess/gap-engine.ts:190-232 function assessCodeToIntent",
-        "strength": "verified",
-        "filePath": "assess/gap-engine.ts",
-        "lineRange": [
-          190,
-          232
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:assess/gap-engine.ts:assessCodeToIntent"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-005",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "assess/gap-engine.ts:235-271 function assessBaseline",
-        "strength": "verified",
-        "filePath": "assess/gap-engine.ts",
-        "lineRange": [
-          235,
-          271
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:assess/gap-engine.ts:assessBaseline"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-006",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "assess/missing-code-proof.ts:52-61 function absenceWording",
-        "strength": "verified",
-        "filePath": "assess/missing-code-proof.ts",
-        "lineRange": [
-          52,
-          61
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:assess/missing-code-proof.ts:absenceWording"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-007",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "assess/severity.ts:103-110 function headlineTrust",
-        "strength": "verified",
-        "filePath": "assess/severity.ts",
-        "lineRange": [
-          103,
-          110
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:assess/severity.ts:headlineTrust"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-008",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "fact-layer/fingerprint.ts:181-192 function bindSpan",
-        "strength": "verified",
-        "filePath": "fact-layer/fingerprint.ts",
-        "lineRange": [
-          181,
-          192
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:fact-layer/fingerprint.ts:bindSpan"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-009",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "fact-layer/fingerprint.ts:200-208 function reconcileSpan",
-        "strength": "verified",
-        "filePath": "fact-layer/fingerprint.ts",
-        "lineRange": [
-          200,
-          208
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:fact-layer/fingerprint.ts:reconcileSpan"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-010",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "fact-layer/index-builder.ts:28-46 function deriveOwnership",
-        "strength": "verified",
-        "filePath": "fact-layer/index-builder.ts",
-        "lineRange": [
-          28,
-          46
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:fact-layer/index-builder.ts:deriveOwnership"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-011",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "fact-layer/index-builder.ts:48-59 function toGraphNode",
-        "strength": "verified",
-        "filePath": "fact-layer/index-builder.ts",
-        "lineRange": [
-          48,
-          59
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:fact-layer/index-builder.ts:toGraphNode"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-012",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "fact-layer/index-builder.ts:61-71 function toGraphEdge",
-        "strength": "verified",
-        "filePath": "fact-layer/index-builder.ts",
-        "lineRange": [
-          61,
-          71
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:fact-layer/index-builder.ts:toGraphEdge"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-013",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "fact-layer/scan.ts:58-70 function partitionAreas",
-        "strength": "verified",
-        "filePath": "fact-layer/scan.ts",
-        "lineRange": [
-          58,
-          70
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:fact-layer/scan.ts:partitionAreas"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-014",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "fact-layer/scan.ts:72-80 function buildScanResult",
-        "strength": "verified",
-        "filePath": "fact-layer/scan.ts",
-        "lineRange": [
-          72,
-          80
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:fact-layer/scan.ts:buildScanResult"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-015",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "intent/intent-spec.ts:34-49 function hashIntentSpec",
-        "strength": "verified",
-        "filePath": "intent/intent-spec.ts",
-        "lineRange": [
-          34,
-          49
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:intent/intent-spec.ts:hashIntentSpec"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-016",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "intent/intent-spec.ts:52-81 function intentNodes",
-        "strength": "verified",
-        "filePath": "intent/intent-spec.ts",
-        "lineRange": [
-          52,
-          81
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:intent/intent-spec.ts:intentNodes"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-017",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "intent/intent-spec.ts:84-100 function toExpectations",
-        "strength": "verified",
-        "filePath": "intent/intent-spec.ts",
-        "lineRange": [
-          84,
-          100
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:intent/intent-spec.ts:toExpectations"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-018",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "overlay/assemble.ts:48-122 function assembleGraph",
-        "strength": "verified",
-        "filePath": "overlay/assemble.ts",
-        "lineRange": [
-          48,
-          122
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:overlay/assemble.ts:assembleGraph"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    },
-    {
-      "id": "A-019",
-      "direction": "code_to_intent",
-      "category": "alignment.unexplained",
-      "claim": "Significant exported component has no confirmed intent mapping in the supplied intent spec",
-      "evidence": {
-        "fact": "overlay/validate.ts:15-64 function validateAssessmentGraph",
-        "strength": "verified",
-        "filePath": "overlay/validate.ts",
-        "lineRange": [
-          15,
-          64
-        ]
-      },
-      "intentRef": "UNCONFIRMED",
-      "severity": "P2",
-      "confidence": "MED",
-      "explanation": "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-      "recommendation": "Confirm whether this is intended; document it in the intent spec or remove it.",
-      "missingCodeProof": {
-        "result": "not_found_in_index",
-        "searchedRoots": [
-          "."
-        ],
-        "excludedRoots": [
-          "node_modules",
-          "dist",
-          "build"
-        ],
-        "requiredRecordTypes": [
-          "symbol"
-        ],
-        "coverage": {
-          "required": 1,
-          "actual": 1
-        },
-        "lowConfidenceResidues": [
-          "intent spec may be incomplete or owner intent may be unconfirmed"
-        ],
-        "residuesRuledIrrelevant": []
-      },
-      "targetNodeIds": [
-        "function:overlay/validate.ts:validateAssessmentGraph"
-      ],
-      "binding": {
-        "assessedAtCommit": "717356b",
-        "intentSpecHash": "ispec:e01d4eea03c8ebe9d288b8ab5b0fb3e516e6f35ced0b70f8b7064ba07c49093a",
-        "generated": "2026-06-19T23:41:10.878Z"
-      }
-    }
-  ],
+  "findings": [],
   "areas": [
     {
       "id": "area:root",
@@ -3424,6 +3887,7 @@
         "file:overlay/assemble.ts",
         "function:overlay/assemble.ts:readinessFor",
         "function:overlay/assemble.ts:assembleGraph",
+        "function:overlay/assemble.ts:countFindings",
         "function:overlay/assemble.ts:summarize",
         "file:overlay/validate.ts",
         "function:overlay/validate.ts:validateAssessmentGraph",
@@ -3437,9 +3901,9 @@
   ],
   "coverage": {
     "totalAreas": 5,
-    "totalNodes": 58,
+    "totalNodes": 59,
     "byStatus": {
-      "assessed": 57,
+      "assessed": 58,
       "partial": 0,
       "not_assessed": 1,
       "coverage_insufficient": 0
@@ -3457,18 +3921,33 @@
     "bySeverity": {
       "P0": 0,
       "P1": 0,
+      "P2": 0,
+      "P3": 0
+    },
+    "byCategory": {},
+    "byDirection": {
+      "intent_to_code": 0,
+      "code_to_intent": 0,
+      "baseline_to_code": 0
+    },
+    "candidateBySeverity": {
+      "P0": 0,
+      "P1": 0,
       "P2": 19,
       "P3": 0
     },
-    "byCategory": {
+    "candidateByCategory": {
       "alignment.missing": 1,
       "alignment.unexplained": 18
     },
-    "byDirection": {
+    "candidateByDirection": {
       "intent_to_code": 1,
       "code_to_intent": 18,
       "baseline_to_code": 0
     },
-    "headline": "intent-bound: scanned 13 code files / 57 nodes; 0 P0 / 0 P1 / 19 P2 / 0 P3 (headline trust: inferred)."
+    "candidateSignalCount": 19,
+    "finalFindingCount": 0,
+    "assessmentNodeCount": 0,
+    "headline": "intent-bound fact layer: scanned 13 code files / 58 fact nodes; runtime produced 19 candidate signal(s) and 0 final finding(s). Agent semantic review is required before dashboard findings become authoritative (headline trust: inferred)."
   }
 }

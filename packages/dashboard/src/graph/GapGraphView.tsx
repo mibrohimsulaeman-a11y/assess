@@ -4,7 +4,7 @@ import ReactFlow, { Background, Controls, Panel, MarkerType, Position, Handle } 
 import type { Edge, Node, NodeProps } from "reactflow";
 import "reactflow/dist/style.css";
 import type { AssessmentGraph, GapDirection, GraphNode, Severity } from "@assess/core";
-import { useStore, visibleFindings } from "../store.js";
+import { useStore } from "../store.js";
 import { SEVERITY_COLOR } from "../nodeColors.js";
 
 // Gap map: the should-be (intent / capability / baseline) on the LEFT, the
@@ -73,7 +73,7 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
     const nodeMap = new Map<string, GraphNode>();
     for (const n of [...graph.nodes, ...graph.intents]) nodeMap.set(n.id, n);
     const findingById = new Map(graph.findings.map((f) => [f.id, f]));
-    const passesSeverity = new Set(visibleFindings(graph, filters).map((f) => f.id));
+    const signalById = new Map((graph.candidateSignals ?? []).map((s) => [s.id, s]));
     const q = filters.search.trim().toLowerCase();
 
     const gapEdges = graph.edges.filter((e) => {
@@ -82,9 +82,12 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
       if (!filters.directions.has(gap.direction)) return false;
       if (!filters.showSatisfied && SATISFIED.has(gap.status)) return false;
       const fid = gap.findingId;
-      if (filters.minSeverity && (!fid || !passesSeverity.has(fid))) return false;
+      const sid = gap.candidateSignalId;
+      const severityItem = fid ? findingById.get(fid) : sid ? signalById.get(sid) : undefined;
+      const minSeverity = filters.minSeverity;
+      if (minSeverity && (!severityItem || (SEV_RANK[severityItem.severity] ?? -1) < (SEV_RANK[minSeverity] ?? 0))) return false;
       if (q) {
-        const fin = fid ? findingById.get(fid) : undefined;
+        const fin = fid ? findingById.get(fid) : sid ? signalById.get(sid) : undefined;
         const hay = `${e.source} ${e.target} ${gap.status} ${fin?.claim ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
@@ -128,7 +131,11 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
 
     const rfEdges: Edge[] = gapEdges.map((e) => {
       const gap = e.gap!;
-      const fin = gap.findingId ? findingById.get(gap.findingId) : undefined;
+      const fin = gap.findingId
+        ? findingById.get(gap.findingId)
+        : gap.candidateSignalId
+          ? signalById.get(gap.candidateSignalId)
+          : undefined;
       const stroke = DIRECTION_COLOR[gap.direction];
       const width = fin ? 1 + (SEV_RANK[fin.severity] ?? 0) : 1.5;
       const labelStyle: CSSProperties = { fontSize: 10, fill: stroke, fontWeight: 600 };
@@ -146,7 +153,7 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
         style,
         markerEnd: { type: MarkerType.ArrowClosed, color: stroke },
         animated: gap.status === "misaligned" || gap.status === "violation",
-        data: { findingId: gap.findingId },
+        data: { findingId: gap.findingId, candidateSignalId: gap.candidateSignalId },
       };
     });
 
@@ -175,7 +182,7 @@ export function GapGraphView({ graph }: { graph: AssessmentGraph }) {
         minZoom={0.2}
         onNodeClick={(_, n) => selectNode(n.id)}
         onEdgeClick={(_, ed) => {
-          const fid = (ed.data as { findingId?: string } | undefined)?.findingId;
+          const fid = (ed.data as { findingId?: string; candidateSignalId?: string } | undefined)?.findingId;
           if (fid) selectFinding(fid);
         }}
       >

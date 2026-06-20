@@ -7,11 +7,13 @@ import { RunSummary } from "./components/RunSummary.js";
 import { GapGraphView } from "./graph/GapGraphView.js";
 import { CoverageMapView } from "./graph/CoverageMapView.js";
 import { FindingsView } from "./graph/FindingsView.js";
+import { SemanticGraphView } from "./graph/SemanticGraphView.js";
 
 const TABS: Array<{ id: ViewMode; label: string; hint: string }> = [
-  { id: "coverage", label: "Coverage map", hint: "What was assessed, and what was not" },
-  { id: "gap", label: "Gap map", hint: "intent to code, code to intent, and baseline gaps" },
-  { id: "findings", label: "Findings", hint: "Ranked verdicts with evidence" },
+  { id: "semantic", label: "Semantic assessment", hint: "Curated agent/human layer; runtime signals are not final findings" },
+  { id: "findings", label: "Final findings", hint: "Agent/human-reviewed verdicts only" },
+  { id: "gap", label: "Fact gap signals", hint: "Runtime candidate signals and deterministic gap edges" },
+  { id: "coverage", label: "Fact coverage", hint: "What the deterministic layer scanned, and what it did not" },
 ];
 
 export function App() {
@@ -26,7 +28,7 @@ export function App() {
       <header className="app__header">
         <div className="app__title">
           <strong>assess</strong>
-          <span className="app__subtitle">post-run gap dashboard, not a comprehension tour</span>
+          <span className="app__subtitle">semantic assessment cockpit; deterministic facts are evidence only</span>
         </div>
         <nav className="app__tabs">
           {TABS.map((t) => (
@@ -55,6 +57,7 @@ export function App() {
               <NodeInfo />
             </aside>
             <main className="app__canvas">
+              {view === "semantic" && <SemanticGraphView graph={graph} />}
               {view === "coverage" && <CoverageMapView graph={graph} />}
               {view === "gap" && <GapGraphView graph={graph} />}
               {view === "findings" && <FindingsView graph={graph} />}

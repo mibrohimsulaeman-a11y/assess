@@ -1,110 +1,138 @@
 # assessment-graph.json schema
 
-The machine artifact the pipeline writes to `.assessment/assessment-graph.json`
-and the dashboard renders. Authoritative definition: `@assess/core`
-(`src/types.ts` + `src/schema.ts`). This page is the human summary.
+The machine artifact written to `.assessment/assessment-graph.json` and rendered
+by the dashboard. Authoritative definition: `@assess/core` (`src/types.ts` +
+`src/schema.ts`). This page is the human summary for schema v3.
 
-> An assessment graph is the deterministic code index (the **fact layer**)
-> joined to **confirmed intent**, with a **gap/finding overlay** and a
-> **coverage manifest** proving which areas were assessed. It is not a
-> comprehension graph: `kind` is always `"assessment"`.
+> Runtime facts are evidence substrate. Runtime `candidateSignals` are not final
+> findings. Final `findings` and `assessmentNodes` exist only after agent/human
+> semantic review.
 
 ## Top level
 
 ```jsonc
 {
-  "version": "2.0.0",
-  "kind": "assessment",          // discriminator; dashboard refuses anything else
+  "version": "3.0.0",
+  "kind": "assessment",
   "binding": { "assessedAtCommit", "intentSpecHash", "generated" },
   "project": { "name", "languages", "frameworks", "description", "analyzedAt", "gitCommitHash" },
-  "intents":  [GraphNode],       // capability + intent (process) nodes — the should-be
-  "nodes":    [GraphNode],       // fact-layer components, each with an assessment overlay
-  "edges":    [GraphEdge],       // fact edges + intent edges + the 3 gap-direction edges
+  "artifact": {
+    "type": "semantic_assessment",
+    "factLayerRole": "deterministic_evidence_substrate",
+    "runtimeSignalsAreFinalFindings": false,
+    "finalFindingsSource": "agent_review_required" | "agent_review" | "human_review",
+    "note": "..."
+  },
+  "intentModel": IntentModelSummary,
+  "assessmentNodes": [SemanticAssessmentNode],
+  "candidateSignals": [CandidateSignal],
+  "intents": [GraphNode],
+  "nodes": [GraphNode],
+  "edges": [GraphEdge],
   "findings": [Finding],
-  "areas":    [Area],            // logical partitions, each with a coverage status
-  "coverage": CoverageManifest,  // proves WHICH areas were assessed
-  "summary":  AssessmentSummary
+  "areas": [Area],
+  "coverage": CoverageManifest,
+  "summary": AssessmentSummary
 }
 ```
 
-## Node types
+## Artifact split
 
-Code (`file` `function` `class` `module` `concept`) + non-code (`config`
-`document` `service` `table` `endpoint` `pipeline` `schema` `resource`) +
-intent (`capability` `intent`). UA’s comprehension-only types (tour/knowledge)
-are dropped; `capability` + `intent` are added.
+| Field | Producer | Meaning |
+|---|---|---|
+| `nodes`, `edges`, `areas`, `coverage` | runtime | deterministic facts + coverage substrate |
+| `candidateSignals` | runtime | evidence-backed signals requiring review |
+| `assessmentNodes` | agent/human review | semantic capabilities, workflows, risk areas, open questions |
+| `findings` | agent/human review only | final curated verdicts |
 
-### The assessment overlay (component nodes)
+## Intent lifecycle
+
+`intentModel.entries[].status` is one of:
+
+| Status | Meaning |
+|---|---|
+| `observed` | code fact only; no intent claim |
+| `inferred_intent` | agent hypothesis from code/docs/tests |
+| `proposed_intent` | draft shown to owner but not accepted |
+| `confirmed_intent` | should-be confirmed by owner/doc/contract |
+| `rejected_intent` | hypothesis disproven or out of scope |
+
+## GraphNode assessment overlay
 
 ```jsonc
 "assessment": {
   "coverageStatus": "assessed" | "partial" | "not_assessed" | "coverage_insufficient",
   "ownership": "owned" | "shared" | "infrastructure" | "hidden" | "overclaimed" | "unowned",
-  "findingIds": ["A-001"],
+  "findingIds": ["A-001"],              // final findings only
+  "candidateSignalIds": ["A-001"],      // runtime signals only
   "readiness": "ready" | "partial" | "blocked" | "unknown",
   "worstSeverity": "P1" | null,
   "trust": "verified" | "inferred" | "unverifiable",
-  "notAssessedReason": "…"          // required when coverageStatus != assessed
+  "notAssessedReason": "..."
 }
 ```
 
-**Every assessable node must carry this overlay** — that is the coverage
-guarantee. `intent` / `capability` nodes carry `intentMeta` instead.
+Every assessable node must carry `coverageStatus`; anything not fully assessed
+must appear in `coverage.gaps`.
 
-## Gap edges (the heart of the graph)
+## CandidateSignal
 
-The three directions are first-class edge types, each carrying a verdict:
-
-| `type` | `gap.direction` | `gap.status` values |
-|---|---|---|
-| `intent_to_code` | intent\u2192code | `satisfied` `partial` `misaligned` `missing` |
-| `code_to_intent` | code\u2192intent | `justified` `unexplained` |
-| `baseline_to_code` | baseline\u2192code | `violation` |
-
-`missing` and `unexplained` edges point at the sentinels the validator allows
-(`intent:UNCONFIRMED`, `baseline`) when there is no concrete counterpart node.
-
-## Finding
+A runtime candidate signal has the same core evidence fields as a finding, plus
+runtime-review metadata:
 
 ```jsonc
 {
-  "id": "A-001",                       // A=alignment, C=correctness, Q=quality
-  "direction": "intent_to_code",
-  "category": "alignment.misalignment", // .missing/.partial/.unexplained/.misalignment | correctness | quality
-  "claim": "…",
-  "evidence": { "fact", "filePath?", "lineRange?", "signals?", "strength", "span?" },
-  "intentRef": "intent:payments.charge-idempotency" | "UNCONFIRMED",
-  "severity": "P0".. "P3",             // after rule + caps
+  "id": "A-001",
+  "source": "runtime_candidate",
+  "reviewStatus": "needs_agent_review" | "accepted" | "rejected",
+  "signalKind": "deterministic_gap" | "baseline_signal",
+  "direction": "intent_to_code" | "code_to_intent" | "baseline_to_code",
+  "category": "alignment.missing" | "alignment.unexplained" | "correctness" | "quality" | "...",
+  "claim": "...",
+  "evidence": { "fact", "strength", "filePath?", "lineRange?", "signals?" },
+  "missingCodeProof?": { "result", "searchedRoots", "coverage", "..." },
+  "evidenceRefs": ["candidate:A-001", "file:src/x.ts:1-20"],
+  "counterEvidenceChecked": ["searched roots: .", "absence result: not_found_in_index"],
+  "openQuestions": ["Agent semantic review required"]
+}
+```
+
+Candidate signals are shown in the dashboard as fact-layer evidence. They are not
+mixed with final findings.
+
+## Final Finding
+
+A final finding must be promoted by agent/human review:
+
+```jsonc
+{
+  "id": "A-001",
+  "source": "agent_review" | "human_review",
+  "direction": "...",
+  "category": "...",
+  "claim": "...",
+  "evidence": { "..." },
+  "reasoningSummary": "concise audit summary, not hidden chain-of-thought",
+  "evidenceRefs": ["candidate:A-001", "file:src/x.ts:1-20"],
+  "counterEvidenceChecked": ["searched tests", "checked docs", "traced workflow"],
+  "openQuestions": ["..."],
+  "severity": "P0" | "P1" | "P2" | "P3",
   "confidence": "HIGH" | "MED" | "LOW",
-  "explanation": "… (lists which caps were applied)",
-  "recommendation": "…",
-  "missingCodeProof?": { "result": "absent" | "not_found_in_index" | "coverage_insufficient", … },
-  "targetNodeIds": ["…"],
+  "recommendation": "...",
   "binding": { "assessedAtCommit", "intentSpecHash", "generated", "spanSha256?", "normalizedFingerprint?" }
 }
 ```
 
-## Coverage manifest — the differentiator
+If `artifact.finalFindingsSource` is `agent_review_required`, `findings` must be
+empty. The validator rejects final findings without `source`, `reasoningSummary`,
+and `evidenceRefs`.
 
-```jsonc
-"coverage": {
-  "totalAreas": 2,
-  "totalNodes": 5,                       // assessable nodes only
-  "byStatus": { "assessed": 4, "partial": 0, "not_assessed": 1, "coverage_insufficient": 0 },
-  "headlineTrust": "inferred",           // weakest evidence the verdicts relied on
-  "gaps": [ { "scope": "webhooks", "status": "not_assessed", "reason": "…" } ]
-}
-```
+## Honesty invariants
 
-`byStatus` MUST sum to `totalNodes` (validator error otherwise). Anything not
-`assessed` appears in `gaps`. The goal is `byStatus.assessed == totalNodes` and
-`gaps == []` — the whole repo assessed.
-
-## Honesty invariants (enforced by validate.ts / validate-graph.cjs)
-
-- Every edge endpoint and `findingId` resolves (or is a known sentinel).
-- Every assessable node has a `coverageStatus`; the manifest tallies all of them.
-- An absence claim without a `missingCodeProof` is a warning; a P0 on an
-  unproven absence is an error.
-- A finding on `unverifiable` evidence may not be P0/P1; a P0 against
-  `UNCONFIRMED` intent is an error.
+- Every edge endpoint resolves or is an allowed sentinel (`baseline`, `intent:UNCONFIRMED`).
+- Every gap edge references either a final `findingId` or a runtime `candidateSignalId`.
+- Every absence-style candidate/finding has `missingCodeProof`.
+- P0/P1 cannot be based on unproven absence.
+- P0/P1 cannot be based on unverifiable evidence.
+- P0 cannot be raised against `UNCONFIRMED` intent.
+- Runtime cannot publish final findings when the artifact says agent review is required.

@@ -31,7 +31,10 @@ function validate(graph) {
 
   const allNodes = [...(graph.nodes || []), ...(graph.intents || [])];
   const nodeIds = new Set(allNodes.map((n) => n.id));
-  const findingIds = new Set((graph.findings || []).map((f) => f.id));
+  const finalFindings = graph.findings || [];
+  const candidateSignals = graph.candidateSignals || [];
+  const findingIds = new Set(finalFindings.map((f) => f.id));
+  const candidateSignalIds = new Set(candidateSignals.map((s) => s.id));
   const SENTINELS = new Set(["baseline", "intent:UNCONFIRMED"]);
   const known = (id) => nodeIds.has(id) || SENTINELS.has(id);
 
@@ -46,13 +49,21 @@ function validate(graph) {
     seenEdgeIds.add(e.id);
     if (!known(e.source)) err(`edge ${e.id}: source ${e.source} not found`);
     if (!known(e.target)) err(`edge ${e.id}: target ${e.target} not found`);
-    if (e.gap && e.gap.findingId && !findingIds.has(e.gap.findingId)) {
-      err(`edge ${e.id}: unknown finding ${e.gap.findingId}`);
+    if (e.gap && e.gap.findingId && !findingIds.has(e.gap.findingId) && !candidateSignalIds.has(e.gap.findingId)) {
+      err(`edge ${e.id}: unknown finding or candidate signal ${e.gap.findingId}`);
+    }
+    if (e.gap && e.gap.candidateSignalId && !candidateSignalIds.has(e.gap.candidateSignalId)) {
+      err(`edge ${e.id}: unknown candidate signal ${e.gap.candidateSignalId}`);
     }
   }
-  for (const f of graph.findings || []) {
+  for (const f of finalFindings) {
     for (const t of f.targetNodeIds || []) {
       if (!known(t)) err(`finding ${f.id}: target ${t} not found`);
+    }
+  }
+  for (const s of candidateSignals) {
+    for (const t of s.targetNodeIds || []) {
+      if (!known(t)) err(`candidate signal ${s.id}: target ${t} not found`);
     }
   }
 
@@ -71,7 +82,18 @@ function validate(graph) {
   }
 
   // 4. honesty rules
-  for (const f of graph.findings || []) {
+  if (graph.artifact && graph.artifact.finalFindingsSource === "agent_review_required" && finalFindings.length > 0) {
+    err("final findings present even though artifact.finalFindingsSource is agent_review_required; runtime signals must remain candidateSignals");
+  }
+  for (const f of finalFindings) {
+    if (f.source !== "agent_review" && f.source !== "human_review") {
+      err(`finding ${f.id}: final finding must declare source agent_review or human_review`);
+    }
+    if (!f.reasoningSummary || !(f.evidenceRefs || []).length) {
+      err(`finding ${f.id}: final finding requires reasoningSummary and evidenceRefs`);
+    }
+  }
+  for (const f of [...finalFindings, ...candidateSignals]) {
     const claimsAbsence =
       f.category === "alignment.missing" ||
       f.category === "alignment.unexplained" ||
@@ -94,7 +116,8 @@ function validate(graph) {
     errors,
     warnings,
     assessableCount: assessable.length,
-    findingCount: (graph.findings || []).length,
+    findingCount: finalFindings.length,
+    candidateSignalCount: candidateSignals.length,
   };
 }
 
@@ -118,7 +141,8 @@ function runCli(argv) {
     console.error(`\n✗ ${res.errors.length} error(s), ${res.warnings.length} warning(s)`);
     return 1;
   }
-  console.log(`✓ assessment-graph.json valid (${res.assessableCount} assessable nodes, ${res.findingCount} findings, ${res.warnings.length} warning(s))`);
+  const signalText = typeof res.candidateSignalCount === "number" ? `, ${res.candidateSignalCount} candidate signals` : "";
+  console.log(`✓ assessment-graph.json valid (${res.assessableCount} assessable nodes, ${res.findingCount} findings${signalText}, ${res.warnings.length} warning(s))`);
   return 0;
 }
 

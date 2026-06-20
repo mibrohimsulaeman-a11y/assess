@@ -542,7 +542,8 @@ export function assessRepo(opts) {
     }
   }
 
-  // ENGINE: gap directions
+  // ENGINE: deterministic signal generation. These are NOT final findings.
+  // Final findings must be promoted by an agent/human semantic review layer.
   const findings = [];
   const gapEdges = [];
   let seq = { A: 0, C: 0, Q: 0 };
@@ -569,7 +570,7 @@ export function assessRepo(opts) {
       // ID must include the finding id: a single node can have several baseline
       // violations, and keying only on the target would collide (duplicate edge
       // ids -> the renderer silently drops edges, and integrity is violated).
-      gapEdges.push({ id: `gap:baseline_to_code:${id}:baseline->${obs.nodeId}`, source: "baseline", target: obs.nodeId, type: "baseline_to_code", direction: "forward", weight: 0.9, gap: { direction: "baseline_to_code", status: "violation", findingId: id }, evidence: { fact: v.rule } });
+      gapEdges.push({ id: `gap:baseline_to_code:${id}:baseline->${obs.nodeId}`, source: "baseline", target: obs.nodeId, type: "baseline_to_code", direction: "forward", weight: 0.9, gap: { direction: "baseline_to_code", status: "violation", candidateSignalId: id }, evidence: { fact: v.rule } });
     }
   }
 
@@ -630,21 +631,21 @@ export function assessRepo(opts) {
                 summary: "Expected by confirmed intent, not found in the index",
                 tags: ["expected-absent"], complexity: "simple",
                 assessment: {
-                  coverageStatus: "not_assessed", ownership: deriveOwnership(compId, factEdges, capabilityOwns), findingIds: [findingId],
+                  coverageStatus: "not_assessed", ownership: deriveOwnership(compId, factEdges, capabilityOwns), findingIds: [], candidateSignalIds: [findingId],
                   readiness: "blocked", worstSeverity: dec.severity, trust: "inferred",
                   notAssessedReason: "expected by confirmed intent but no implementing path found in the index",
                 },
               });
             }
           }
-          gapEdges.push({ id: `gap:intent_to_code:${p.id}->${compId}`, source: p.id, target: compId, type: "intent_to_code", direction: "forward", weight: status === "satisfied" ? 0.3 : 0.9, gap: { direction: "intent_to_code", status, findingId }, evidence: { fact: status === "satisfied" ? "implementing path present in index" : (findingId || "") } });
+          gapEdges.push({ id: `gap:intent_to_code:${p.id}->${compId}`, source: p.id, target: compId, type: "intent_to_code", direction: "forward", weight: status === "satisfied" ? 0.3 : 0.9, gap: { direction: "intent_to_code", status, candidateSignalId: findingId }, evidence: { fact: status === "satisfied" ? "implementing path present in index" : (findingId || "") } });
         }
       }
     }
     // 2: code -> intent (unexplained significant components)
     for (const obs of observations) {
       const mapped = ownsByNode.get(obs.nodeId);
-      if (mapped) { gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->${mapped}`, source: obs.nodeId, target: mapped, type: "code_to_intent", direction: "forward", weight: 0.3, gap: { direction: "code_to_intent", status: "justified", findingId: undefined }, evidence: { fact: "maps to confirmed capability" } }); continue; }
+      if (mapped) { gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->${mapped}`, source: obs.nodeId, target: mapped, type: "code_to_intent", direction: "forward", weight: 0.3, gap: { direction: "code_to_intent", status: "justified" }, evidence: { fact: "maps to confirmed capability" } }); continue; }
       if (obs.significance !== "high") continue;
       const proof = computeMissingCodeProof({
         searchedRoots: [path.relative(repoRoot, repoRoot) || "."],
@@ -664,7 +665,7 @@ export function assessRepo(opts) {
         recommendation: "Confirm whether this is intended; document it in the intent spec or remove it.",
         missingCodeProof: proof, targetNodeIds: [obs.nodeId], binding: { ...binding },
       });
-      gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->intent:UNCONFIRMED`, source: obs.nodeId, target: "intent:UNCONFIRMED", type: "code_to_intent", direction: "forward", weight: 0.9, gap: { direction: "code_to_intent", status: "unexplained", findingId: id }, evidence: { fact: "no confirmed intent" } });
+      gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->intent:UNCONFIRMED`, source: obs.nodeId, target: "intent:UNCONFIRMED", type: "code_to_intent", direction: "forward", weight: 0.9, gap: { direction: "code_to_intent", status: "unexplained", candidateSignalId: id }, evidence: { fact: "no confirmed intent" } });
     }
   } else {
     // No confirmed intent: be honest — intent_to_code & code_to_intent are NOT
@@ -693,7 +694,8 @@ export function assessRepo(opts) {
       assessment: {
         coverageStatus,
         ownership: deriveOwnership(node.id, factEdges, capabilityOwns),
-        findingIds: nf.map((f) => f.id),
+        findingIds: [],
+        candidateSignalIds: nf.map((f) => f.id),
         readiness: reason ? "partial" : worst === "P0" ? "blocked" : worst === "P1" ? "partial" : worst ? "partial" : "ready",
         worstSeverity: worst,
         trust,
@@ -721,18 +723,27 @@ export function assessRepo(opts) {
     return { ...area, coverageStatus: status, worstSeverity: sev };
   });
 
-  const coverage = buildCoverageManifest(stampedNodes, areas, findings, nodeMap);
-  const summary = summarize(findings, coverage.headlineTrust, hasIntent, assessedFiles.length, componentNodes.length);
+  const candidateSignals = findings.map(toCandidateSignal);
+  const finalFindings = [];
+  const assessmentNodes = [];
+  const coverage = buildCoverageManifest(stampedNodes, areas, candidateSignals, nodeMap);
+  const summary = summarize(finalFindings, candidateSignals, coverage.headlineTrust, hasIntent, assessedFiles.length, componentNodes.length, assessmentNodes.length);
 
   const graph = {
-    version: "2.0.0", kind: "assessment", binding,
+    version: "3.0.0", kind: "assessment", binding,
     project: {
       name: path.basename(repoRoot), languages, frameworks: detectFrameworks(repoRoot),
-      description: hasIntent ? "intent-bound assessment" : "baseline-only assessment (no confirmed intent supplied)",
+      description: hasIntent
+        ? "semantic assessment shell: confirmed intent supplied; runtime emitted candidate signals for agent review"
+        : "semantic assessment shell: no confirmed intent supplied; runtime emitted fact-layer candidate signals only",
       analyzedAt: generated, gitCommitHash: commit,
     },
+    artifact: buildArtifactMeta(),
+    intentModel: buildIntentModelSummary(spec),
+    assessmentNodes,
+    candidateSignals,
     intents: iNodes, nodes: stampedNodes, edges: [...factEdges, ...gapEdges],
-    findings, areas, coverage, summary,
+    findings: finalFindings, areas, coverage, summary,
   };
 
   // VALIDATE before publishing. The engine must never hand back — let alone write
@@ -761,10 +772,93 @@ export function assessRepo(opts) {
     fs.renameSync(tmpPath, outPath);
   }
 
-  return { graph, outPath, summary: { ...summary, hasIntent, files: assessedFiles.length, nodes: stampedNodes.length, findings: findings.length } };
+  return {
+    graph,
+    outPath,
+    summary: {
+      ...summary,
+      hasIntent,
+      files: assessedFiles.length,
+      nodes: stampedNodes.length,
+      findings: finalFindings.length,
+      candidateSignals: candidateSignals.length,
+    },
+  };
 }
 
 // ---------- assemble helpers ----------
+
+function evidenceRefsFor(signal) {
+  const refs = new Set();
+  refs.add(`candidate:${signal.id}`);
+  for (const id of signal.targetNodeIds || []) refs.add(id);
+  if (signal.intentRef) refs.add(`intent:${signal.intentRef}`);
+  if (signal.evidence?.filePath) {
+    const range = signal.evidence.lineRange ? `:${signal.evidence.lineRange[0]}-${signal.evidence.lineRange[1]}` : "";
+    refs.add(`file:${signal.evidence.filePath}${range}`);
+  }
+  return [...refs];
+}
+
+function toCandidateSignal(signal) {
+  const proof = signal.missingCodeProof;
+  const counterEvidenceChecked = proof
+    ? [
+        `searched roots: ${proof.searchedRoots.join(", ") || "(none)"}`,
+        `required records: ${proof.requiredRecordTypes.join(", ")}`,
+        `absence result: ${proof.result}`,
+      ]
+    : ["deterministic fact layer only; no semantic agent counter-evidence pass has run"];
+  return {
+    ...signal,
+    source: "runtime_candidate",
+    reviewStatus: "needs_agent_review",
+    signalKind: signal.direction === "baseline_to_code" ? "baseline_signal" : "deterministic_gap",
+    evidenceRefs: evidenceRefsFor(signal),
+    counterEvidenceChecked,
+    openQuestions: ["Agent semantic review must decide whether this signal is a high-quality final finding."],
+  };
+}
+
+function buildArtifactMeta() {
+  return {
+    type: "semantic_assessment",
+    factLayerRole: "deterministic_evidence_substrate",
+    runtimeSignalsAreFinalFindings: false,
+    finalFindingsSource: "agent_review_required",
+    note: "Runtime emits fact nodes and candidateSignals only. Final findings and semantic assessment nodes must be produced by an agent/human review pass with evidence refs and counter-evidence checks.",
+  };
+}
+
+function buildIntentModelSummary(spec) {
+  if (!spec) {
+    return {
+      lifecycle: "none",
+      confirmedCapabilityCount: 0,
+      inferredCapabilityCount: 0,
+      proposedCapabilityCount: 0,
+      rejectedCapabilityCount: 0,
+      entries: [],
+    };
+  }
+  const entries = [];
+  const counts = { confirmed: 0, inferred: 0, proposed: 0, rejected: 0 };
+  for (const cap of spec.capabilities || []) {
+    const status = cap.status === "CONFIRMED" ? "confirmed_intent" : "inferred_intent";
+    if (status === "confirmed_intent") counts.confirmed++; else counts.inferred++;
+    entries.push({ id: cap.id, status, label: cap.label });
+    for (const p of cap.processes || []) entries.push({ id: p.id, status, label: p.label });
+  }
+  const activeBuckets = [counts.confirmed, counts.inferred, counts.proposed, counts.rejected].filter((n) => n > 0).length;
+  return {
+    lifecycle: activeBuckets === 0 ? "none" : activeBuckets === 1 && counts.confirmed > 0 ? "confirmed" : "mixed",
+    confirmedCapabilityCount: counts.confirmed,
+    inferredCapabilityCount: counts.inferred,
+    proposedCapabilityCount: counts.proposed,
+    rejectedCapabilityCount: counts.rejected,
+    entries,
+  };
+}
 
 function deriveOwnership(nodeId, edges, capabilityOwns = new Set()) {
   const claimed = capabilityOwns.has(nodeId);
@@ -816,14 +910,35 @@ function buildCoverageManifest(nodes, areas, findings, nodeMap) {
   return { totalAreas: areas.length, totalNodes: assessable.length, byStatus, headlineTrust: headlineTrust(findings), gaps };
 }
 
-function summarize(findings, trust, hasIntent, files, nodes) {
+function countSignalSet(items) {
   const bySeverity = { P0: 0, P1: 0, P2: 0, P3: 0 };
   const byCategory = {};
   const byDirection = { intent_to_code: 0, code_to_intent: 0, baseline_to_code: 0 };
-  for (const f of findings) { bySeverity[f.severity]++; byCategory[f.category] = (byCategory[f.category] ?? 0) + 1; byDirection[f.direction]++; }
-  const mode = hasIntent ? "intent-bound" : "baseline-only (no confirmed intent)";
-  const headline = `${mode}: scanned ${files} code files / ${nodes} nodes; ${bySeverity.P0} P0 / ${bySeverity.P1} P1 / ${bySeverity.P2} P2 / ${bySeverity.P3} P3 (headline trust: ${trust}).`;
-  return { bySeverity, byCategory, byDirection, headline };
+  for (const f of items) {
+    bySeverity[f.severity]++;
+    byCategory[f.category] = (byCategory[f.category] ?? 0) + 1;
+    byDirection[f.direction]++;
+  }
+  return { bySeverity, byCategory, byDirection };
+}
+
+function summarize(finalFindings, candidateSignals, trust, hasIntent, files, nodes, assessmentNodeCount) {
+  const finalCounts = countSignalSet(finalFindings);
+  const candidateCounts = countSignalSet(candidateSignals);
+  const mode = hasIntent ? "intent-bound fact layer" : "baseline-only fact layer (no confirmed intent)";
+  const headline = `${mode}: scanned ${files} code files / ${nodes} fact nodes; runtime produced ${candidateSignals.length} candidate signal(s) and 0 final finding(s). Agent semantic review is required before dashboard findings become authoritative (headline trust: ${trust}).`;
+  return {
+    bySeverity: finalCounts.bySeverity,
+    byCategory: finalCounts.byCategory,
+    byDirection: finalCounts.byDirection,
+    candidateBySeverity: candidateCounts.bySeverity,
+    candidateByCategory: candidateCounts.byCategory,
+    candidateByDirection: candidateCounts.byDirection,
+    candidateSignalCount: candidateSignals.length,
+    finalFindingCount: finalFindings.length,
+    assessmentNodeCount,
+    headline,
+  };
 }
 
 function resolveRelative(fromDir, imp, fileSet) {

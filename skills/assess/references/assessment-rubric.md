@@ -4,6 +4,21 @@ What to judge, how to ground it, and how to grade severity. Every finding — fr
 
 **The grounding rule overrides everything here:** a finding exists only if a deterministic fact supports it. “This probably has a race condition somewhere” is not a finding; “`charge.rs:40-78` mutates `balance` after an `await` with no lock (call graph: on checkout critical path), 0% coverage” is.
 
+## Candidate signal vs final finding
+
+The runtime may emit a `candidateSignal`. A candidate signal is deterministic
+evidence that deserves review; it is not a final finding. A final `Finding` is
+created only after agent/human semantic review checks the evidence refs, traces
+the relevant workflow, searches for counter-evidence, classifies intent lifecycle,
+and writes a concise `reasoningSummary`.
+
+Never mix these buckets in reports:
+
+| Bucket | Meaning | Dashboard treatment |
+|---|---|---|
+| `candidateSignals` | runtime evidence substrate | fact-signal drilldown |
+| `findings` | promoted semantic verdicts | final findings view |
+
 ---
 
 ## The three gap directions

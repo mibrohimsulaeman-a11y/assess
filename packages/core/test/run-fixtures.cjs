@@ -22,8 +22,25 @@ function base() {
     version: "2.0.0",
     kind: "assessment",
     binding: { ...BINDING },
-    project: { name: "fixture", languages: ["TypeScript"], frameworks: [] },
-    intents: [{ id: "intent:x.do", type: "intent", name: "do", intentMeta: { status: "CONFIRMED" } }],
+    project: { name: "fixture", languages: ["TypeScript"], frameworks: [], description: "fixture", analyzedAt: "2026-01-01T00:00:00Z", gitCommitHash: "abc1234" },
+    artifact: {
+      type: "semantic_assessment",
+      factLayerRole: "deterministic_evidence_substrate",
+      runtimeSignalsAreFinalFindings: false,
+      finalFindingsSource: "agent_review_required",
+      note: "runtime candidate signals require agent review before promotion",
+    },
+    intentModel: {
+      lifecycle: "confirmed",
+      confirmedCapabilityCount: 1,
+      inferredCapabilityCount: 0,
+      proposedCapabilityCount: 0,
+      rejectedCapabilityCount: 0,
+      entries: [{ id: "intent:x.do", status: "confirmed_intent", label: "do" }],
+    },
+    assessmentNodes: [],
+    candidateSignals: [],
+    intents: [{ id: "intent:x.do", type: "intent", name: "do", summary: "do", tags: ["intent"], complexity: "simple", intentMeta: { status: "CONFIRMED" } }],
     nodes: [
       {
         id: "file:a.ts",
@@ -116,6 +133,23 @@ const cases = [
         severity: "P2",
         intentRef: "UNCONFIRMED",
       }));
+      return g;
+    },
+  },
+
+  {
+    name: "runtime-signal-without-proof",
+    expect: "fail",
+    mutate: (g) => {
+      g.candidateSignals.push({
+        ...finding({ category: "alignment.missing", claim: "no implementing code", severity: "P2" }),
+        source: "runtime_candidate",
+        reviewStatus: "needs_agent_review",
+        signalKind: "deterministic_gap",
+        evidenceRefs: ["file:a.ts"],
+        counterEvidenceChecked: [],
+        openQuestions: ["agent review required"],
+      });
       return g;
     },
   },
