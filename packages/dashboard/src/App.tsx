@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useStore, type ViewMode } from "./store.js";
 import { CoverageBanner } from "./components/CoverageBanner.js";
 import { FilterPanel } from "./components/FilterPanel.js";
@@ -18,6 +18,7 @@ const TABS: Array<{ id: ViewMode; label: string; hint: string }> = [
 
 export function App() {
   const { graph, loading, error, view, setView, load } = useStore();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     void load();
@@ -48,22 +49,31 @@ export function App() {
       {error && <div className="app__state app__state--error">Failed to load: {error}</div>}
 
       {graph && (
-        <>
-          <RunSummary graph={graph} />
-          <CoverageBanner graph={graph} />
-          <div className="app__body">
-            <aside className="app__sidebar">
-              <FilterPanel />
-              <NodeInfo />
-            </aside>
-            <main className="app__canvas">
-              {view === "semantic" && <SemanticGraphView graph={graph} />}
-              {view === "coverage" && <CoverageMapView graph={graph} />}
-              {view === "gap" && <GapGraphView graph={graph} />}
-              {view === "findings" && <FindingsView graph={graph} />}
-            </main>
-          </div>
-        </>
+        <div className="app__body">
+          <aside className={`app__sidebar ${sidebarOpen ? "" : "app__sidebar--collapsed"}`}>
+            <button
+              className="app__sidebar-toggle"
+              onClick={() => setSidebarOpen((open) => !open)}
+              title={sidebarOpen ? "Collapse run context" : "Open run context"}
+            >
+              {sidebarOpen ? "‹" : "›"}
+            </button>
+            {sidebarOpen && (
+              <div className="app__sidebar-content">
+                <RunSummary graph={graph} />
+                <CoverageBanner graph={graph} />
+                <FilterPanel />
+                <NodeInfo />
+              </div>
+            )}
+          </aside>
+          <main className="app__canvas">
+            {view === "semantic" && <SemanticGraphView graph={graph} />}
+            {view === "coverage" && <CoverageMapView graph={graph} />}
+            {view === "gap" && <GapGraphView graph={graph} />}
+            {view === "findings" && <FindingsView graph={graph} />}
+          </main>
+        </div>
       )}
     </div>
   );

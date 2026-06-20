@@ -28,9 +28,36 @@ body { font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; colo
 
 .app__body { display: flex; flex: 1; min-height: 0; }
 .app__sidebar {
-  width: 320px; border-right: 1px solid var(--line); overflow-y: auto;
-  padding: 12px; display: flex; flex-direction: column; gap: 12px; background: var(--panel);
+  width: 360px;
+  min-width: 360px;
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--panel);
+  transition: width 0.16s ease, min-width 0.16s ease, padding 0.16s ease;
 }
+.app__sidebar--collapsed {
+  width: 44px;
+  min-width: 44px;
+  padding: 8px 6px;
+  overflow: hidden;
+}
+.app__sidebar-toggle {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  height: 30px;
+  min-height: 30px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.app__sidebar-content { display: flex; flex-direction: column; gap: 12px; }
 .app__canvas { flex: 1; min-width: 0; position: relative; }
 
 .banner { padding: 10px 16px; border-bottom: 1px solid var(--line); }
@@ -190,6 +217,21 @@ body { font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; colo
 .severity-pill--p1 { border-color: #b91c1c; color: #b91c1c; }
 .severity-pill--p2 { border-color: #c2410c; color: #c2410c; }
 .severity-pill--p3 { border-color: #475569; color: #475569; }
+
+.app__sidebar .run-summary,
+.app__sidebar .banner {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 12px;
+}
+.app__sidebar .run-summary__hero { flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.app__sidebar .run-summary h1 { font-size: 18px; }
+.app__sidebar .run-summary__headline { max-width: none; font-size: 12px; }
+.app__sidebar .run-summary__score { min-width: 0; width: 100%; }
+.app__sidebar .run-summary__cards { grid-template-columns: 1fr; }
+.app__sidebar .banner__text { font-size: 12px; }
+.app__sidebar .banner__bar { height: 8px; }
 
 /* ---------- graph node cards (coverage + gap maps) ----------
  * Shared card chrome for the custom ReactFlow nodes. The left accent bar

@@ -29,7 +29,8 @@ was NOT assessed.
    confidence, intent lifecycle, or absence proof quality.
 6. **Baseline-only mode is honest, not a failure.** Without confirmed intent,
    alignment can be inferred/proposed only; do not call it confirmed.
-7. **You are read-only.** Recommend fixes; never modify the repo.
+7. **Complete review before presentation.** Do not surface the dashboard/dev command while the graph says `finalFindingsSource: agent_review_required` or any candidate signal is still `needs_agent_review`.
+8. **You are read-only.** Recommend fixes; never modify the repo.
 
 ## Output shape
 

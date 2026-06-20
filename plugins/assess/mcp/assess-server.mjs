@@ -200,10 +200,17 @@ const handlers = {
       summary: summary.headline,
       mode: summary.hasIntent ? "intent-bound" : "baseline-only",
       outPath,
-      dashboard: {
-        graphPath: outPath,
-        devCommand: `ASSESS_GRAPH=${JSON.stringify(outPath)} pnpm dev:dashboard`,
-      },
+      dashboard: graph.artifact?.finalFindingsSource === "agent_review_required"
+        ? {
+            readyForUser: false,
+            graphPath: outPath,
+            blockedReason: "Runtime graph contains candidateSignals only. Complete semantic assessment before presenting the dashboard to the user.",
+          }
+        : {
+            readyForUser: true,
+            graphPath: outPath,
+            devCommand: `ASSESS_GRAPH=${JSON.stringify(outPath)} pnpm dev:dashboard`,
+          },
       counts: {
         files: summary.files,
         nodes: summary.nodes,

@@ -48,7 +48,12 @@ function main() {
   const { graph, outPath, summary } = assessRepo({ repoRoot, intentSpecPath: args.intent, outDir });
   console.log(summary.headline);
   console.log(`wrote ${outPath}`);
+  if (graph.artifact?.finalFindingsSource === "agent_review_required") {
+    console.log("dashboard pending semantic assessment");
+    console.log(`internal preview ASSESS_GRAPH=${shellQuote(outPath)} pnpm dev:dashboard`);
+  } else {
   console.log(`dashboard ASSESS_GRAPH=${shellQuote(outPath)} pnpm dev:dashboard`);
+  }
 
   // Validate via the zero-dep validator; fail the process on any error.
   const { execFileSync } = require("node:child_process");

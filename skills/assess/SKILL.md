@@ -111,9 +111,14 @@ Errors block the write. The validator rejects final findings when the artifact s
 `agent_review_required`, and final findings must declare agent/human source plus
 evidence refs.
 
-### Phase 7 — SAVE
-Write `.assessment/assessment-graph.json` + `report.md` + `findings/`. Open the
-dashboard with `pnpm dev:dashboard`.
+### Phase 7 — SAVE / PRESENTATION GATE
+Write `.assessment/assessment-graph.json` after validation. Do not present the
+dashboard while `artifact.finalFindingsSource` is `agent_review_required` or any
+candidate signal remains `needs_agent_review`.
+
+Only after semantic review is complete — normally after reading the relevant
+source, reviewing every candidate signal, and promoting/rejecting them — may the
+agent present the dashboard command.
 
 ---
 
@@ -140,6 +145,7 @@ dashboard with `pnpm dev:dashboard`.
 7. The graph is validated before it is written; a failing honesty gate blocks the run.
 8. The dashboard shows semantic assessment first; raw fact graph views are evidence drilldown only.
 9. Runtime `candidateSignals` are never final findings until promoted by agent/human semantic review.
+10. Do not present the dashboard while `finalFindingsSource` is `agent_review_required`; use it only as an internal preview until semantic review is complete.
 
 See `references/` for the rubric, intent elicitation, semantic review workflow,
 the graph schema, and the report template; see `examples/` for sample artifacts.

@@ -40,6 +40,7 @@ NEVER eyeball the diff and write opinions. Always go through the engine:
 - Final findings and runtime candidate signals in separate sections.
 - Per candidate signal: id, severity, direction, claim, evidence fact, and review status.
 - An explicit “not assessed” note for changed areas the index could not cover.
+- No dashboard link unless semantic assessment is complete and candidate signals are reviewed.
 
 ## Honesty rules (non-negotiable)
 
@@ -47,3 +48,4 @@ NEVER eyeball the diff and write opinions. Always go through the engine:
   downgrade to “could not confirm”.
 - Without confirmed intent, alignment signals are inferred/proposed only; do not present them as settled final findings.
 - Never raise severity above what the evidence strength allows.
+- Never show the dashboard while the graph is runtime-only (`finalFindingsSource: agent_review_required`).
