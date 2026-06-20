@@ -21,6 +21,7 @@ import crypto from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { javascriptTypeScriptAdapter } from "./adapters/javascript.mjs";
 
 // The structural + honesty validator is the SAME zero-dep module CI and the MCP
 // server use. Loading it here means assessRepo can never return or write a graph
@@ -45,7 +46,6 @@ const EXT_LANG = {
   sql: "SQL", yaml: "YAML", yml: "YAML", json: "JSON", md: "Markdown",
 };
 
-const CODE_EXT = new Set(["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"]);
 const SEVERITY_ORDER = ["P3", "P2", "P1", "P0"];
 const STRENGTH_RANK = { verified: 2, inferred: 1, unverifiable: 0 };
 
@@ -313,94 +313,9 @@ function areaOf(rel) {
   return { id: `area:${kebab(top) || "root"}`, name: top };
 }
 
-// ---------- INDEX: deterministic TS/JS symbol + relation extraction ----------
+// ---------- language adapter boundary ----------
 
-// Find the end line of a brace-delimited block starting at/after `fromLine`.
-function blockEndLine(lines, fromLine) {
-  let depth = 0, seen = false;
-  for (let i = fromLine; i < lines.length; i++) {
-    for (const ch of lines[i]) {
-      if (ch === "{") { depth++; seen = true; }
-      else if (ch === "}") { depth--; }
-    }
-    if (seen && depth <= 0) return i;
-    if (i - fromLine > 4000) return i;
-  }
-  return lines.length - 1;
-}
-
-const RE = {
-  cls: /^\s*(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+([A-Za-z0-9_$]+)/,
-  fn: /^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s*\*?\s+([A-Za-z0-9_$]+)/,
-  arrow: /^\s*(?:export\s+)?(?:default\s+)?const\s+([A-Za-z0-9_$]+)\s*(?::[^=]+)?=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z0-9_$]+)\s*(?::[^=]+)?=>/,
-  imp: /^\s*import\b[^"']*["']([^"']+)["']/,
-  req: /\brequire\(\s*["']([^"']+)["']\s*\)/g,
-  route: /\b(?:app|router|server|fastify|api|r)\.(get|post|put|patch|delete|options|head|all|use)\s*\(\s*["'`]([^"'`]+)["'`]/g,
-  exported: /^\s*export\b/,
-};
-
-function extractFromFile(rel, content) {
-  const lines = content.split(/\r?\n/);
-  const symbols = [];
-  const imports = new Set();
-  const routes = [];
-  const fileId = `file:${rel}`;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    let m;
-    if ((m = RE.imp.exec(line))) imports.add(m[1]);
-    let rm;
-    RE.req.lastIndex = 0;
-    while ((rm = RE.req.exec(line))) imports.add(rm[1]);
-    RE.route.lastIndex = 0;
-    let rt;
-    while ((rt = RE.route.exec(line))) routes.push({ method: rt[1], path: rt[2], line: i + 1 });
-
-    let name = null, kind = null;
-    if ((m = RE.cls.exec(line))) { name = m[1]; kind = "class"; }
-    else if ((m = RE.fn.exec(line))) { name = m[1]; kind = "function"; }
-    else if ((m = RE.arrow.exec(line))) { name = m[1]; kind = "function"; }
-    if (name) {
-      const end = blockEndLine(lines, i);
-      const span = lines.slice(i, end + 1).join("\n");
-      const len = end - i + 1;
-      symbols.push({
-        id: `${kind === "class" ? "class" : "function"}:${rel}:${name}`,
-        type: kind,
-        name,
-        filePath: rel,
-        lineRange: [i + 1, end + 1],
-        exported: RE.exported.test(line),
-        loc: len,
-        complexity: len > 120 ? "complex" : len > 40 ? "moderate" : "simple",
-        source: span,
-      });
-    }
-  }
-  return { fileId, imports: [...imports], routes, symbols };
-}
-
-// Conservative, deterministic baseline checks. Each returns a VERIFIED fact
-// (the token/line-count literally exists), so the claim never over-reaches.
-function baselineViolations(sym) {
-  const out = [];
-  const body = sym.source;
-  if (/\beval\s*\(/.test(body)) {
-    out.push({ rule: "use of eval() on a code path", ruleSeverity: "P1", securitySensitive: true,
-      fact: `${sym.filePath}:${sym.lineRange[0]}-${sym.lineRange[1]} calls eval()`, category: "correctness" });
-  }
-  const todo = body.match(/\b(TODO|FIXME|XXX|HACK)\b/);
-  if (todo) {
-    out.push({ rule: `unresolved ${todo[1]} marker in shipped code`, ruleSeverity: "P3", securitySensitive: false,
-      fact: `${sym.filePath}:${sym.lineRange[0]}-${sym.lineRange[1]} contains a ${todo[1]} comment`, category: "quality" });
-  }
-  if (sym.loc > 120) {
-    out.push({ rule: "oversized function (low maintainability)", ruleSeverity: "P3", securitySensitive: false,
-      fact: `${sym.filePath}:${sym.lineRange[0]}-${sym.lineRange[1]} is ${sym.loc} lines long`, category: "quality" });
-  }
-  return out;
-}
+const RUNTIME_LANGUAGE_ADAPTERS = [javascriptTypeScriptAdapter];
 
 // ---------- intent spec loading (optional) ----------
 
@@ -469,78 +384,36 @@ export function assessRepo(opts) {
 
   // SCAN
   const allFiles = walk(repoRoot);
-  const assessedFiles = allFiles.filter((f) => !isExcluded(f.rel) && CODE_EXT.has(f.rel.split(".").pop()?.toLowerCase()));
   const languages = [...new Set(allFiles.map((f) => langOf(f.rel)).filter((l) => l !== "Other"))];
 
   // INDEX
   const componentNodes = [];
   const factEdges = [];
   const observations = [];
-  const fileExtracts = [];
   const symbolById = new Map();
-  // Measured index coverage: fraction of enumerated code files we actually read
-  // and parsed into the index. Drives the missing-code proof instead of a guess.
+  const assessedFiles = [];
+  const scannerLimitations = new Set();
   let indexedFileCount = 0;
 
-  for (const f of assessedFiles) {
-    let content = "";
-    try { content = fs.readFileSync(f.abs, "utf8"); } catch { continue; }
-    indexedFileCount++;
-    const ex = extractFromFile(f.rel, content);
-    fileExtracts.push(ex);
-    const isTest = /(\.|\/)(test|spec)\.|(^|\/)(tests?|__tests__)\//.test(f.rel);
-
-    componentNodes.push({
-      id: ex.fileId, type: "file", name: f.rel.split("/").pop(), filePath: f.rel,
-      summary: `${langOf(f.rel)} file, ${content.split(/\r?\n/).length} lines, ${ex.symbols.length} symbol(s)`,
-      tags: isTest ? ["test"] : [], complexity: "simple",
+  for (const adapter of RUNTIME_LANGUAGE_ADAPTERS) {
+    const result = adapter.scanRepo({
+      repoRoot,
+      allFiles,
+      langOf,
+      sourceSha256: sha256,
+      normalizedFingerprint,
     });
-
-    for (const s of ex.symbols) {
-      const node = {
-        id: s.id, type: s.type, name: s.name, filePath: s.filePath, lineRange: s.lineRange,
-        summary: `${s.type} ${s.name} (${s.loc} lines${s.exported ? ", exported" : ""})`,
-        tags: [s.exported ? "exported" : "internal", ...(isTest ? ["test"] : [])],
-        complexity: s.complexity,
-      };
-      componentNodes.push(node);
-      symbolById.set(s.id, s);
-      factEdges.push({
-        id: `edge:contains:${ex.fileId}->${s.id}`, source: ex.fileId, target: s.id,
-        type: "contains", direction: "forward", weight: 0.8,
-        evidence: { fact: `${f.rel}:${s.lineRange[0]} declares ${s.name}` },
-      });
-
-      const violations = isTest ? [] : baselineViolations(s);
-      observations.push({
-        nodeId: s.id,
-        significance: s.exported && !isTest && s.loc >= 8 ? "high" : "low",
-        evidenceFact: `${s.filePath}:${s.lineRange[0]}-${s.lineRange[1]} ${s.type} ${s.name}`,
-        evidenceStrength: "verified", // existence of the symbol is byte-verifiable
-        confidence: "HIGH",
-        baselineViolations: violations,
-        span: { filePath: s.filePath, lineRange: s.lineRange, spanSha256: sha256(s.source), normalizedFingerprint: normalizedFingerprint(s.source) },
-      });
-    }
+    assessedFiles.push(...result.assessedFiles);
+    indexedFileCount += result.indexedFileCount;
+    componentNodes.push(...result.componentNodes);
+    factEdges.push(...result.factEdges);
+    observations.push(...result.observations);
+    for (const limitation of result.limitations || []) scannerLimitations.add(limitation);
+    for (const [id, symbol] of result.symbolById) symbolById.set(id, symbol);
   }
 
-  // import edges (file -> file) for resolvable relative imports
+  const scannerLimitationList = [...scannerLimitations].sort();
   const fileSet = new Set(componentNodes.filter((n) => n.type === "file").map((n) => n.filePath));
-  for (const ex of fileExtracts) {
-    const fromDir = path.posix.dirname(ex.fileId.replace(/^file:/, ""));
-    for (const imp of ex.imports) {
-      if (!imp.startsWith(".")) continue; // skip packages; only intra-repo edges are facts here
-      const resolved = resolveRelative(fromDir, imp, fileSet);
-      if (resolved) {
-        factEdges.push({
-          id: `edge:imports:${ex.fileId}->file:${resolved}`,
-          source: ex.fileId, target: `file:${resolved}`,
-          type: "imports", direction: "forward", weight: 0.8,
-          evidence: { fact: `${ex.fileId.replace(/^file:/, "")} imports ${imp}` },
-        });
-      }
-    }
-  }
 
   // ENGINE: deterministic signal generation. These drafts are NOT final findings.
   // Final findings must be promoted by an agent/human semantic review layer.
@@ -609,7 +482,9 @@ export function assessRepo(opts) {
               // residue keeps every absence proof at most "not_found_in_index", which
               // the severity engine caps at <=P2 — so a scanner limitation can never
               // masquerade as a P0/P1 "proven absent" finding.
-              lowConfidenceResidues: ["scanner cannot resolve dynamic/computed/re-exported symbols"],
+              lowConfidenceResidues: scannerLimitationList.length
+                ? scannerLimitationList
+                : ["scanner cannot resolve dynamic/computed/re-exported symbols"],
             });
           } else { status = "satisfied"; }
           let findingId;
@@ -942,14 +817,6 @@ function summarize(finalFindings, candidateSignals, trust, hasIntent, files, nod
   };
 }
 
-function resolveRelative(fromDir, imp, fileSet) {
-  let base = path.posix.normalize(path.posix.join(fromDir, imp));
-  const cands = [base, base + ".ts", base + ".tsx", base + ".js", base + ".jsx", base + ".mjs", base + ".cjs",
-    base.replace(/\.js$/, ".ts"), base.replace(/\.js$/, ".tsx"),
-    path.posix.join(base, "index.ts"), path.posix.join(base, "index.js"), path.posix.join(base, "index.tsx")];
-  for (const c of cands) if (fileSet.has(c)) return c;
-  return null;
-}
 
 function detectFrameworks(root) {
   const fw = [];

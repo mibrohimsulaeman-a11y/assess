@@ -33,3 +33,7 @@ export * from "./overlay/validate.js";
 // review decision workflow
 export * from "./review/decision-types.js";
 export * from "./review/apply-review-decisions.js";
+
+// adapter boundary
+export * from "./adapters/scan-result.js";
+export * from "./adapters/language-adapter.js";

@@ -51,6 +51,14 @@ The graph drives the `@assess/dashboard` review cockpit. It shows readiness
 evidence/counter-evidence detail, final-finding linkage, and fact-layer
 drilldowns. Runtime candidate signals are never presented as final findings.
 
+### Language adapter boundary
+
+Runtime scanning is adapter-backed. The current production adapter is
+`packages/core/runtime/adapters/javascript.mjs` for JavaScript/TypeScript. The
+contract lives in `packages/core/src/adapters/`. New language support must add a
+runtime adapter plus fixture tests; do not mix parser-specific extraction logic
+back into `packages/core/runtime/engine.mjs`.
+
 ---
 
 ## The pipeline (8 phases)
@@ -161,6 +169,7 @@ agent present the dashboard command or report.
 6. Every finding is bound to a commit + intent-spec hash (+ span hashes when cited).
 7. The graph is validated before it is written; a failing honesty gate blocks the run.
 8. The dashboard is a review cockpit: it must show readiness state, candidate queues, evidence detail, and linkage before any graph looks user-facing.
+8a. New language support must go through the adapter boundary and must preserve candidate-only runtime output.
 9. Runtime `candidateSignals` are never final findings until promoted by agent/human semantic review.
 10. Do not present the dashboard while `finalFindingsSource` is `agent_review_required`; use it only as an internal preview until semantic review is complete.
 11. Do not show or serve dashboard/report from a runtime-only graph. Only show dashboard/report after review decisions are applied and reviewed graph validation passes.
