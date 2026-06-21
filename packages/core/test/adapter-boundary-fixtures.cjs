@@ -70,11 +70,12 @@ async function main() {
       normalizedFingerprint,
     });
 
-    assert.equal(result.adapterId, "javascript-typescript-regex-v1");
+    assert.equal(result.adapterId, "javascript-typescript-v2");
+    assert.ok(["typescript-compiler-api", "regex-brace-fallback"].includes(result.parserStrategy));
     assert.deepEqual(result.languageIds, ["JavaScript", "TypeScript"]);
     assert.equal(result.assessedFiles.length, 3);
     assert.equal(result.indexedFileCount, 3);
-    assert.ok(result.limitations.includes("scanner cannot resolve dynamic/computed/re-exported symbols"));
+    assert.ok(result.limitations.some((item) => /dynamic\/computed\/re-exported symbols/.test(item)));
 
     const nodeIds = new Set(result.componentNodes.map((node) => node.id));
     assert.ok(nodeIds.has("file:src/a.ts"));

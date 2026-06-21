@@ -13,6 +13,7 @@ export interface LanguageAdapter {
   displayName: string;
   languageIds: string[];
   extensions: string[];
+  parserStrategy: string;
   /** Known extraction blind spots that must cap absence claims and be shown honestly. */
   limitations: string[];
   scanRepo(context: LanguageAdapterContext): LanguageAdapterScanResult;

@@ -53,11 +53,12 @@ drilldowns. Runtime candidate signals are never presented as final findings.
 
 ### Language adapter boundary
 
-Runtime scanning is adapter-backed. The current production adapter is
-`packages/core/runtime/adapters/javascript.mjs` for JavaScript/TypeScript. The
+Runtime scanning is adapter-backed. Current production adapters live under
+`packages/core/runtime/adapters/`: JavaScript/TypeScript, Python, and Go. The
 contract lives in `packages/core/src/adapters/`. New language support must add a
 runtime adapter plus fixture tests; do not mix parser-specific extraction logic
-back into `packages/core/runtime/engine.mjs`.
+back into `packages/core/runtime/engine.mjs`. Check `artifact.adapterRuns` before
+making claims about language coverage or parser limitations.
 
 ---
 

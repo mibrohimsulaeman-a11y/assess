@@ -162,12 +162,27 @@ export const SemanticAssessmentNodeSchema = z.object({
   findingIds: z.array(z.string()),
 });
 
+export const LanguageAdapterRunMetaSchema = z.object({
+  adapterId: z.string(),
+  displayName: z.string(),
+  languageIds: z.array(z.string()),
+  extensions: z.array(z.string()),
+  parserStrategy: z.string(),
+  assessedFileCount: z.number(),
+  indexedFileCount: z.number(),
+  componentNodeCount: z.number(),
+  factEdgeCount: z.number(),
+  observationCount: z.number(),
+  limitations: z.array(z.string()),
+});
+
 export const AssessmentArtifactMetaSchema = z.object({
   type: z.literal("semantic_assessment"),
   factLayerRole: z.literal("deterministic_evidence_substrate"),
   runtimeSignalsAreFinalFindings: z.literal(false),
   finalFindingsSource: z.enum(["agent_review_required", "agent_review", "human_review"]),
   note: z.string(),
+  adapterRuns: z.array(LanguageAdapterRunMetaSchema).optional(),
 });
 
 export const IntentModelSummarySchema = z.object({

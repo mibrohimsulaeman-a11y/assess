@@ -57,9 +57,26 @@ export interface RuntimeObservation {
   span: SpanBinding;
 }
 
+export interface LanguageAdapterScanSummary {
+  adapterId: string;
+  displayName: string;
+  languageIds: string[];
+  extensions: string[];
+  parserStrategy: string;
+  assessedFileCount: number;
+  indexedFileCount: number;
+  componentNodeCount: number;
+  factEdgeCount: number;
+  observationCount: number;
+  limitations: string[];
+}
+
 export interface LanguageAdapterScanResult {
   adapterId: string;
+  displayName: string;
   languageIds: string[];
+  extensions: string[];
+  parserStrategy: string;
   assessedFiles: SourceFileRecord[];
   indexedFileCount: number;
   componentNodes: GraphNode[];

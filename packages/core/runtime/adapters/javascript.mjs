@@ -1,15 +1,31 @@
 import fs from "node:fs";
-import path from "node:path";
+import { createRequire } from "node:module";
+import {
+  buildObservation,
+  complexityFromLoc,
+  containsEdge,
+  createFileNode,
+  createSymbolNode,
+  extensionOf,
+  importEdge,
+  isGenericTestFile,
+  resolveRelative,
+} from "./common.mjs";
 
+const require = createRequire(import.meta.url);
 const EXTENSIONS = ["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"];
 const CODE_EXT = new Set(EXTENSIONS);
+const ts = loadTypeScript();
 
 export const javascriptTypeScriptAdapter = {
-  id: "javascript-typescript-regex-v1",
-  displayName: "JavaScript/TypeScript regex scanner",
+  id: "javascript-typescript-v2",
+  displayName: "JavaScript/TypeScript adapter",
   languageIds: ["JavaScript", "TypeScript"],
   extensions: EXTENSIONS,
-  limitations: ["scanner cannot resolve dynamic/computed/re-exported symbols"],
+  parserStrategy: ts ? "typescript-compiler-api" : "regex-brace-fallback",
+  limitations: ts
+    ? ["TypeScript compiler parser does not resolve dynamic/computed/re-exported symbols"]
+    : ["scanner cannot resolve dynamic/computed/re-exported symbols"],
   scanRepo: scanJavaScriptTypeScriptRepo,
 };
 
@@ -33,80 +49,40 @@ export function scanJavaScriptTypeScriptRepo(context) {
     indexedFileCount++;
     const extract = extractFromFile(file.rel, content);
     fileExtracts.push(extract);
-    const isTest = /(\.|\/)(test|spec)\.|(^|\/)(tests?|__tests__)\//.test(file.rel);
+    const isTest = isGenericTestFile(file.rel);
 
-    componentNodes.push({
-      id: extract.fileId,
-      type: "file",
-      name: file.rel.split("/").pop(),
-      filePath: file.rel,
-      summary: `${langOf(file.rel)} file, ${content.split(/\r?\n/).length} lines, ${extract.symbols.length} symbol(s)`,
-      tags: isTest ? ["test"] : [],
-      complexity: "simple",
-    });
+    componentNodes.push(createFileNode({
+      rel: file.rel,
+      language: langOf(file.rel),
+      lineCount: content.split(/\r?\n/).length,
+      symbolCount: extract.symbols.length,
+      isTest,
+    }));
 
     for (const symbol of extract.symbols) {
-      componentNodes.push({
-        id: symbol.id,
-        type: symbol.type,
-        name: symbol.name,
-        filePath: symbol.filePath,
-        lineRange: symbol.lineRange,
-        summary: `${symbol.type} ${symbol.name} (${symbol.loc} lines${symbol.exported ? ", exported" : ""})`,
-        tags: [symbol.exported ? "exported" : "internal", ...(isTest ? ["test"] : [])],
-        complexity: symbol.complexity,
-      });
+      componentNodes.push(createSymbolNode(symbol, isTest));
       symbolById.set(symbol.id, symbol);
-      factEdges.push({
-        id: `edge:contains:${extract.fileId}->${symbol.id}`,
-        source: extract.fileId,
-        target: symbol.id,
-        type: "contains",
-        direction: "forward",
-        weight: 0.8,
-        evidence: { fact: `${file.rel}:${symbol.lineRange[0]} declares ${symbol.name}` },
-      });
-
-      const violations = isTest ? [] : baselineViolations(symbol);
-      observations.push({
-        nodeId: symbol.id,
-        significance: symbol.exported && !isTest && symbol.loc >= 8 ? "high" : "low",
-        evidenceFact: `${symbol.filePath}:${symbol.lineRange[0]}-${symbol.lineRange[1]} ${symbol.type} ${symbol.name}`,
-        evidenceStrength: "verified",
-        confidence: "HIGH",
-        baselineViolations: violations,
-        span: {
-          filePath: symbol.filePath,
-          lineRange: symbol.lineRange,
-          spanSha256: sourceSha256(symbol.source),
-          normalizedFingerprint: normalizedFingerprint(symbol.source),
-        },
-      });
+      factEdges.push(containsEdge(extract.fileId, symbol, file.rel));
+      observations.push(buildObservation(symbol, isTest, sourceSha256, normalizedFingerprint));
     }
   }
 
   const fileSet = new Set(componentNodes.filter((node) => node.type === "file").map((node) => node.filePath));
   for (const extract of fileExtracts) {
-    const fromDir = path.posix.dirname(extract.fileId.replace(/^file:/, ""));
+    const fromDir = extract.fileId.replace(/^file:/, "").split("/").slice(0, -1).join("/") || ".";
     for (const imported of extract.imports) {
       if (!imported.startsWith(".")) continue;
-      const resolved = resolveRelative(fromDir, imported, fileSet);
-      if (!resolved) continue;
-      factEdges.push({
-        id: `edge:imports:${extract.fileId}->file:${resolved}`,
-        source: extract.fileId,
-        target: `file:${resolved}`,
-        type: "imports",
-        direction: "forward",
-        weight: 0.8,
-        evidence: { fact: `${extract.fileId.replace(/^file:/, "")} imports ${imported}` },
-      });
+      const resolved = resolveRelative(fromDir, imported, fileSet, jsCandidatesForBase);
+      if (resolved) factEdges.push(importEdge(extract.fileId, resolved, imported));
     }
   }
 
   return {
     adapterId: javascriptTypeScriptAdapter.id,
+    displayName: javascriptTypeScriptAdapter.displayName,
     languageIds: javascriptTypeScriptAdapter.languageIds,
+    extensions: javascriptTypeScriptAdapter.extensions,
+    parserStrategy: javascriptTypeScriptAdapter.parserStrategy,
     assessedFiles,
     indexedFileCount,
     componentNodes,
@@ -118,8 +94,126 @@ export function scanJavaScriptTypeScriptRepo(context) {
   };
 }
 
-function extensionOf(filePath) {
-  return filePath.split(".").pop()?.toLowerCase() ?? "";
+function loadTypeScript() {
+  try {
+    return require("typescript");
+  } catch {
+    return null;
+  }
+}
+
+function extractFromFile(rel, content) {
+  if (ts) {
+    try {
+      return extractWithTypeScript(rel, content);
+    } catch {
+      return extractWithRegex(rel, content);
+    }
+  }
+  return extractWithRegex(rel, content);
+}
+
+function extractWithTypeScript(rel, content) {
+  const sourceFile = ts.createSourceFile(rel, content, ts.ScriptTarget.Latest, true, scriptKindFor(rel));
+  const imports = new Set();
+  const routes = [];
+  const symbols = [];
+  const fileId = `file:${rel}`;
+
+  function addSymbol(node, kind, name, exported = false) {
+    if (!name) return;
+    const start = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+    const end = sourceFile.getLineAndCharacterOfPosition(node.end).line + 1;
+    const source = content.slice(node.getStart(sourceFile), node.end);
+    const loc = Math.max(1, end - start + 1);
+    symbols.push({
+      id: `${kind === "class" ? "class" : "function"}:${rel}:${name}`,
+      type: kind,
+      name,
+      filePath: rel,
+      lineRange: [start, end],
+      exported,
+      loc,
+      complexity: complexityFromLoc(loc),
+      source,
+    });
+  }
+
+  function exported(node) {
+    return Boolean(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export);
+  }
+
+  function visit(node, className = null) {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      imports.add(node.moduleSpecifier.text);
+    } else if (ts.isCallExpression(node)) {
+      const call = callInfo(node);
+      if (call?.imported) imports.add(call.imported);
+      if (call?.route) routes.push(call.route);
+    } else if (ts.isFunctionDeclaration(node) && node.name) {
+      addSymbol(node, "function", node.name.text, exported(node));
+    } else if (ts.isClassDeclaration(node) && node.name) {
+      addSymbol(node, "class", node.name.text, exported(node));
+      for (const member of node.members || []) visit(member, node.name.text);
+      return;
+    } else if (ts.isMethodDeclaration(node) && className && node.name) {
+      const methodName = propertyNameText(node.name);
+      if (methodName) addSymbol(node, "function", `${className}.${methodName}`, false);
+    } else if (ts.isVariableStatement(node)) {
+      const isExported = exported(node);
+      for (const declaration of node.declarationList.declarations) {
+        if (!ts.isIdentifier(declaration.name)) continue;
+        if (declaration.initializer && (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer))) {
+          addSymbol(declaration, "function", declaration.name.text, isExported);
+        }
+      }
+    }
+    ts.forEachChild(node, (child) => visit(child, className));
+  }
+
+  visit(sourceFile);
+  return { fileId, imports: [...imports], routes, symbols: dedupeSymbols(symbols) };
+}
+
+function callInfo(node) {
+  if (ts.isIdentifier(node.expression) && node.expression.text === "require") {
+    const arg = node.arguments?.[0];
+    return ts.isStringLiteral(arg) ? { imported: arg.text } : null;
+  }
+  if (!ts.isPropertyAccessExpression(node.expression)) return null;
+  const method = node.expression.name.text;
+  const receiver = node.expression.expression.getText();
+  const httpMethods = new Set(["get", "post", "put", "patch", "delete", "options", "head", "all", "use"]);
+  const receivers = new Set(["app", "router", "server", "fastify", "api", "r"]);
+  if (!httpMethods.has(method) || !receivers.has(receiver)) return null;
+  const first = node.arguments?.[0];
+  if (!ts.isStringLiteral(first) && !ts.isNoSubstitutionTemplateLiteral(first)) return null;
+  const line = node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1;
+  return { route: { method, path: first.text, line } };
+}
+
+function propertyNameText(name) {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) return name.text;
+  return null;
+}
+
+function scriptKindFor(rel) {
+  const ext = extensionOf(rel);
+  if (ext === "tsx") return ts.ScriptKind.TSX;
+  if (ext === "jsx") return ts.ScriptKind.JSX;
+  if (["ts", "mts", "cts"].includes(ext)) return ts.ScriptKind.TS;
+  return ts.ScriptKind.JS;
+}
+
+function dedupeSymbols(symbols) {
+  const seen = new Set();
+  const out = [];
+  for (const symbol of symbols) {
+    if (seen.has(symbol.id)) continue;
+    seen.add(symbol.id);
+    out.push(symbol);
+  }
+  return out;
 }
 
 function blockEndLine(lines, fromLine) {
@@ -150,7 +244,7 @@ const RE = {
   exported: /^\s*export\b/,
 };
 
-function extractFromFile(rel, content) {
+function extractWithRegex(rel, content) {
   const lines = content.split(/\r?\n/);
   const symbols = [];
   const imports = new Set();
@@ -166,9 +260,7 @@ function extractFromFile(rel, content) {
     while ((requiredModule = RE.req.exec(line))) imports.add(requiredModule[1]);
     RE.route.lastIndex = 0;
     let route;
-    while ((route = RE.route.exec(line))) {
-      routes.push({ method: route[1], path: route[2], line: i + 1 });
-    }
+    while ((route = RE.route.exec(line))) routes.push({ method: route[1], path: route[2], line: i + 1 });
 
     let name = null;
     let kind = null;
@@ -185,7 +277,7 @@ function extractFromFile(rel, content) {
     if (!name) continue;
 
     const end = blockEndLine(lines, i);
-    const span = lines.slice(i, end + 1).join("\n");
+    const source = lines.slice(i, end + 1).join("\n");
     const loc = end - i + 1;
     symbols.push({
       id: `${kind === "class" ? "class" : "function"}:${rel}:${name}`,
@@ -195,51 +287,15 @@ function extractFromFile(rel, content) {
       lineRange: [i + 1, end + 1],
       exported: RE.exported.test(line),
       loc,
-      complexity: loc > 120 ? "complex" : loc > 40 ? "moderate" : "simple",
-      source: span,
+      complexity: complexityFromLoc(loc),
+      source,
     });
   }
-
   return { fileId, imports: [...imports], routes, symbols };
 }
 
-function baselineViolations(symbol) {
-  const out = [];
-  const body = symbol.source;
-  if (/\beval\s*\(/.test(body)) {
-    out.push({
-      rule: "use of eval() on a code path",
-      ruleSeverity: "P1",
-      securitySensitive: true,
-      fact: `${symbol.filePath}:${symbol.lineRange[0]}-${symbol.lineRange[1]} calls eval()`,
-      category: "correctness",
-    });
-  }
-  const todo = body.match(/\b(TODO|FIXME|XXX|HACK)\b/);
-  if (todo) {
-    out.push({
-      rule: `unresolved ${todo[1]} marker in shipped code`,
-      ruleSeverity: "P3",
-      securitySensitive: false,
-      fact: `${symbol.filePath}:${symbol.lineRange[0]}-${symbol.lineRange[1]} contains a ${todo[1]} comment`,
-      category: "quality",
-    });
-  }
-  if (symbol.loc > 120) {
-    out.push({
-      rule: "oversized function (low maintainability)",
-      ruleSeverity: "P3",
-      securitySensitive: false,
-      fact: `${symbol.filePath}:${symbol.lineRange[0]}-${symbol.lineRange[1]} is ${symbol.loc} lines long`,
-      category: "quality",
-    });
-  }
-  return out;
-}
-
-function resolveRelative(fromDir, imported, fileSet) {
-  const base = path.posix.normalize(path.posix.join(fromDir, imported));
-  const candidates = [
+function jsCandidatesForBase(base) {
+  return [
     base,
     base + ".ts",
     base + ".tsx",
@@ -249,12 +305,8 @@ function resolveRelative(fromDir, imported, fileSet) {
     base + ".cjs",
     base.replace(/\.js$/, ".ts"),
     base.replace(/\.js$/, ".tsx"),
-    path.posix.join(base, "index.ts"),
-    path.posix.join(base, "index.js"),
-    path.posix.join(base, "index.tsx"),
+    `${base}/index.ts`,
+    `${base}/index.js`,
+    `${base}/index.tsx`,
   ];
-  for (const candidate of candidates) {
-    if (fileSet.has(candidate)) return candidate;
-  }
-  return null;
 }

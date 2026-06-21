@@ -29,7 +29,7 @@
     "review:apply": "node packages/core/runtime/review-run.mjs apply",
     "review:validate": "node packages/core/runtime/review-run.mjs validate",
     "test:review": "node packages/core/test/review-decision-fixtures.cjs",
-    "test:adapter": "node packages/core/test/adapter-boundary-fixtures.cjs",
+    "test:adapter": "node packages/core/test/adapter-boundary-fixtures.cjs && node packages/core/test/multilanguage-adapters.cjs",
     "test:dashboard": "node packages/dashboard/test/review-readiness.cjs"
   },
   "devDependencies": {

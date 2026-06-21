@@ -237,12 +237,28 @@ export interface SemanticAssessmentNode {
   findingIds: string[];
 }
 
+export interface LanguageAdapterRunMeta {
+  adapterId: string;
+  displayName: string;
+  languageIds: string[];
+  extensions: string[];
+  parserStrategy: string;
+  assessedFileCount: number;
+  indexedFileCount: number;
+  componentNodeCount: number;
+  factEdgeCount: number;
+  observationCount: number;
+  limitations: string[];
+}
+
 export interface AssessmentArtifactMeta {
   type: "semantic_assessment";
   factLayerRole: "deterministic_evidence_substrate";
   runtimeSignalsAreFinalFindings: false;
   finalFindingsSource: "agent_review_required" | "agent_review" | "human_review";
   note: string;
+  /** runtime language adapters that produced the deterministic fact substrate */
+  adapterRuns?: LanguageAdapterRunMeta[];
 }
 
 export interface IntentModelSummary {

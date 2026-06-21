@@ -74,8 +74,11 @@ the typed helper modules:
   shell, and validates it. It does **not** create final findings. Runs with plain
   `node`, before anything is installed.
 - **`packages/core/runtime/adapters/javascript.mjs`**: current JS/TS runtime
-  adapter. It preserves the existing regex + brace-matching behavior behind a
-  pluggable adapter boundary.
+  adapter. It uses the TypeScript compiler parser when dependencies are
+  installed, with a zero-dependency regex/brace fallback.
+- **`packages/core/runtime/adapters/python.mjs`** and
+  **`packages/core/runtime/adapters/go.mjs`**: MVP Python and Go adapters for
+  file/symbol facts and baseline candidates.
 - **`plugins/assess/mcp/assess-server.mjs`**: a zero-dependency MCP server
   (JSON-RPC over stdio) exposing `assess_repo`, `validate_graph`,
   `review_queue`, `apply_review_decisions`, `list_findings`,
@@ -88,14 +91,13 @@ the typed helper modules:
   questions; and makes candidate → semantic node → final finding linkage visible.
 - Zero-dependency honesty-gate fixtures proving the validator on sample graphs.
 
-Honest limitation: the default JS/TS adapter is still a deterministic MVP
-(regex + brace matching). M3.1 adds the adapter boundary but does not claim a real
-AST/call graph, broad route parsing, or behavioral partial/misaligned analysis.
-Runtime output is intentionally candidate-only: `findings` remain empty until an
-agent/human semantic review promotes a signal with evidence refs,
-counter-evidence checks, and a reasoning summary. The engine and MCP server are
-proven to run end-to-end with `node`; full workspace build is validated through
-the pnpm build pipeline when dependencies are installed.
+Honest limitation: the JS/TS adapter is parser-backed when `typescript` is
+installed, but it is not Tree-sitter yet and still does not claim a real call
+graph or behavioral partial/misaligned analysis. Python and Go support are MVP
+symbol/file adapters, not full semantic analyzers. Runtime output remains
+candidate-only: `findings` stay empty until an agent/human semantic review
+promotes a signal with evidence refs, counter-evidence checks, and a reasoning
+summary.
 
 ---
 
@@ -119,7 +121,10 @@ assess/
         intent/                     # confirmed intent spec + binding hash
         assess/                     # typed gap helpers, missing-code proof, severity, coverage
         overlay/                    # assemble + validate honesty gates
-      runtime/adapters/javascript.mjs # zero-dep JS/TS runtime adapter
+      runtime/adapters/javascript.mjs # JS/TS runtime adapter, TS parser + zero-dep fallback
+      runtime/adapters/python.mjs   # Python MVP runtime adapter
+      runtime/adapters/go.mjs       # Go MVP runtime adapter
+      runtime/adapters/registry.mjs # adapter registry + adapter run manifest aggregation
       runtime/engine.mjs            # zero-dep headless engine (adapter -> graph -> validate)
       runtime/assess-run.mjs        # optional scan CLI shim (CI/debug only)
       runtime/review-core.mjs       # zero-dep review decision apply engine
@@ -151,12 +156,16 @@ Current adapter state:
 
 | Adapter | Runtime file | Typed contract | Status |
 |---|---|---|---|
-| JavaScript / TypeScript | `packages/core/runtime/adapters/javascript.mjs` | `packages/core/src/adapters/*` | active, regex + brace MVP |
+| JavaScript / TypeScript | `packages/core/runtime/adapters/javascript.mjs` | `packages/core/src/adapters/*` | active, TypeScript parser when available; regex fallback |
+| Python | `packages/core/runtime/adapters/python.mjs` | `packages/core/src/adapters/*` | MVP file/function/class extraction |
+| Go | `packages/core/runtime/adapters/go.mjs` | `packages/core/src/adapters/*` | MVP file/function extraction |
 
 The adapter contract returns files assessed, indexed symbols, fact edges,
-observations, baseline violations, and scanner limitations. New languages should
-add adapters and fixtures; they should not add parser-specific extraction logic
-directly into `runtime/engine.mjs`.
+observations, baseline violations, and scanner limitations. Each graph also
+stamps `artifact.adapterRuns`, so reviewers can see which adapters handled which
+languages, parser strategy, indexed file counts, and limitations. New languages
+should add adapters and fixtures; they should not add parser-specific extraction
+logic directly into `runtime/engine.mjs`.
 
 ---
 

@@ -21,7 +21,7 @@ import crypto from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-import { javascriptTypeScriptAdapter } from "./adapters/javascript.mjs";
+import { scanWithAdapters } from "./adapters/registry.mjs";
 
 // The structural + honesty validator is the SAME zero-dep module CI and the MCP
 // server use. Loading it here means assessRepo can never return or write a graph
@@ -313,10 +313,6 @@ function areaOf(rel) {
   return { id: `area:${kebab(top) || "root"}`, name: top };
 }
 
-// ---------- language adapter boundary ----------
-
-const RUNTIME_LANGUAGE_ADAPTERS = [javascriptTypeScriptAdapter];
-
 // ---------- intent spec loading (optional) ----------
 
 function loadIntentSpec(intentSpecPath) {
@@ -387,32 +383,23 @@ export function assessRepo(opts) {
   const languages = [...new Set(allFiles.map((f) => langOf(f.rel)).filter((l) => l !== "Other"))];
 
   // INDEX
-  const componentNodes = [];
-  const factEdges = [];
-  const observations = [];
-  const symbolById = new Map();
-  const assessedFiles = [];
-  const scannerLimitations = new Set();
-  let indexedFileCount = 0;
-
-  for (const adapter of RUNTIME_LANGUAGE_ADAPTERS) {
-    const result = adapter.scanRepo({
-      repoRoot,
-      allFiles,
-      langOf,
-      sourceSha256: sha256,
-      normalizedFingerprint,
-    });
-    assessedFiles.push(...result.assessedFiles);
-    indexedFileCount += result.indexedFileCount;
-    componentNodes.push(...result.componentNodes);
-    factEdges.push(...result.factEdges);
-    observations.push(...result.observations);
-    for (const limitation of result.limitations || []) scannerLimitations.add(limitation);
-    for (const [id, symbol] of result.symbolById) symbolById.set(id, symbol);
-  }
-
-  const scannerLimitationList = [...scannerLimitations].sort();
+  const scanResult = scanWithAdapters({
+    repoRoot,
+    allFiles,
+    langOf,
+    sourceSha256: sha256,
+    normalizedFingerprint,
+  });
+  const {
+    assessedFiles,
+    indexedFileCount,
+    componentNodes,
+    factEdges,
+    observations,
+    symbolById,
+    limitations: scannerLimitationList,
+    adapterRuns,
+  } = scanResult;
   const fileSet = new Set(componentNodes.filter((n) => n.type === "file").map((n) => n.filePath));
 
   // ENGINE: deterministic signal generation. These drafts are NOT final findings.
@@ -613,7 +600,7 @@ export function assessRepo(opts) {
         : "semantic assessment shell: no confirmed intent supplied; runtime emitted fact-layer candidate signals only",
       analyzedAt: generated, gitCommitHash: commit,
     },
-    artifact: buildArtifactMeta(),
+    artifact: buildArtifactMeta(adapterRuns),
     intentModel: buildIntentModelSummary(spec),
     assessmentNodes,
     candidateSignals,
@@ -696,13 +683,14 @@ function toCandidateSignal(signal) {
   };
 }
 
-function buildArtifactMeta() {
+function buildArtifactMeta(adapterRuns = []) {
   return {
     type: "semantic_assessment",
     factLayerRole: "deterministic_evidence_substrate",
     runtimeSignalsAreFinalFindings: false,
     finalFindingsSource: "agent_review_required",
     note: "Runtime emits fact nodes and candidateSignals only. Final findings and semantic assessment nodes must be produced by an agent/human review pass with evidence refs and counter-evidence checks.",
+    adapterRuns,
   };
 }
 
