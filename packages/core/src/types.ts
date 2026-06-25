@@ -141,6 +141,9 @@ export interface GraphNode {
   intentMeta?: IntentMeta;
 }
 
+/** Where a confirmed intent came from; caps trust and triggers the anti-circularity guard. */
+export type IntentProvenance = "user_confirmed" | "doc_backed" | "agent_inferred";
+
 export interface IntentMeta {
   status: "CONFIRMED" | "UNCONFIRMED";
   /** for capability nodes: the component ids it claims to own */
@@ -148,6 +151,10 @@ export interface IntentMeta {
   /** for intent (process) nodes: the invariant that must hold */
   invariant?: string;
   criticalPath?: boolean;
+  /** source of the confirmed intent; defaults to user_confirmed when omitted */
+  provenance?: IntentProvenance;
+  /** for doc_backed provenance: pointer to the artifact */
+  provenanceRef?: string;
 }
 
 // ---------- graph edge ----------
@@ -251,6 +258,21 @@ export interface LanguageAdapterRunMeta {
   limitations: string[];
 }
 
+export interface FrameworkPackRunMeta {
+  packId: string;
+  displayName: string;
+  frameworkIds: string[];
+  languageIds: string[];
+  detected: boolean;
+  confidence: Confidence;
+  endpointNodeCount: number;
+  resourceNodeCount: number;
+  configNodeCount: number;
+  frameworkEdgeCount: number;
+  observationCount: number;
+  limitations: string[];
+}
+
 export interface AssessmentArtifactMeta {
   type: "semantic_assessment";
   factLayerRole: "deterministic_evidence_substrate";
@@ -259,6 +281,8 @@ export interface AssessmentArtifactMeta {
   note: string;
   /** runtime language adapters that produced the deterministic fact substrate */
   adapterRuns?: LanguageAdapterRunMeta[];
+  /** runtime framework packs that produced endpoint/resource/config facts */
+  frameworkRuns?: FrameworkPackRunMeta[];
 }
 
 export interface IntentModelSummary {
@@ -283,6 +307,19 @@ export interface Area {
   worstSeverity?: Severity | null;
 }
 
+/** Alignment coverage (P8): how much of the code can the run actually speak to intent for? */
+export interface IntentCoverage {
+  capabilitiesClaimed: number;
+  componentsTotal: number;
+  componentsMapped: number;
+  componentsUnmapped: number;
+  /** componentsMapped / componentsTotal, 0..1 */
+  mappedRatio: number;
+  /** weakest provenance across confirmed capabilities, or null with no confirmed intent */
+  weakestProvenance: IntentProvenance | null;
+  note: string;
+}
+
 /** Proves WHICH areas were assessed. The whole point: every area should be covered. */
 export interface CoverageManifest {
   totalAreas: number;
@@ -292,6 +329,17 @@ export interface CoverageManifest {
   headlineTrust: EvidenceStrength;
   /** explicit list of anything NOT fully assessed, with the reason */
   gaps: Array<{ scope: string; status: CoverageStatus; reason: string }>;
+  /** alignment coverage; present on intent-bound runs */
+  intentCoverage?: IntentCoverage;
+}
+
+/** The intent-confirmation gate state (G1). Surfaced to callers so they can stop and confirm. */
+export interface IntentGate {
+  state: "confirmed" | "intent_provisional" | "intent_required";
+  provenance: IntentProvenance | null;
+  blocksDirections: GapDirection[];
+  reason: string;
+  action: string | null;
 }
 
 export interface AssessmentSummary {

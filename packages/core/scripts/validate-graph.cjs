@@ -44,6 +44,21 @@ function validate(graph) {
   }
   if (!Array.isArray(graph.assessmentNodes)) err("assessmentNodes must be an array");
   if (!Array.isArray(graph.candidateSignals)) err("candidateSignals must be an array");
+  if (graph.artifact && "frameworkRuns" in graph.artifact) {
+    if (!Array.isArray(graph.artifact.frameworkRuns)) {
+      err("artifact.frameworkRuns must be an array when present");
+    } else {
+      for (const [idx, run] of graph.artifact.frameworkRuns.entries()) {
+        for (const field of ["packId", "displayName"]) if (!run || typeof run[field] !== "string") err(`artifact.frameworkRuns[${idx}].${field} must be a string`);
+        for (const field of ["frameworkIds", "languageIds", "limitations"]) if (!Array.isArray(run?.[field])) err(`artifact.frameworkRuns[${idx}].${field} must be an array`);
+        if (!["HIGH", "MED", "LOW"].includes(run?.confidence)) err(`artifact.frameworkRuns[${idx}].confidence is invalid: ${JSON.stringify(run?.confidence)}`);
+        if (typeof run?.detected !== "boolean") err(`artifact.frameworkRuns[${idx}].detected must be boolean`);
+        for (const field of ["endpointNodeCount", "resourceNodeCount", "configNodeCount", "frameworkEdgeCount", "observationCount"]) {
+          if (typeof run?.[field] !== "number" || run[field] < 0) err(`artifact.frameworkRuns[${idx}].${field} must be a non-negative number`);
+        }
+      }
+    }
+  }
 
   const allNodes = [...(graph.nodes || []), ...(graph.intents || [])];
   const nodeIds = new Set(allNodes.map((n) => n.id));
@@ -184,6 +199,15 @@ function validate(graph) {
       if (!knownEvidenceRef(ref)) err(`candidate signal ${s.id}: evidenceRef ${ref} not found`);
     }
   }
+  // G3: which intents were inferred by the agent from this same codebase?
+  // A finding judged against such intent is the tool grading its own homework,
+  // so it must stay <=P3 and carry an explicit provisional open question.
+  const SEVERITY_ORDER = ["P3", "P2", "P1", "P0"];
+  const circularIntentIds = new Set(
+    [...(graph.intents || []), ...(graph.nodes || [])]
+      .filter((n) => n && (n.type === "intent" || n.type === "capability") && n.intentMeta && n.intentMeta.provenance === "agent_inferred")
+      .map((n) => n.id),
+  );
   for (const f of [...finalFindings, ...candidateSignals]) {
     const claimsAbsence =
       f.category === "alignment.missing" ||
@@ -200,6 +224,15 @@ function validate(graph) {
     }
     if (f.intentRef === "UNCONFIRMED" && f.severity === "P0") {
       err(`finding ${f.id}: P0 against UNCONFIRMED intent (cap P2)`);
+    }
+    if (f.direction === "intent_to_code" && circularIntentIds.has(f.intentRef)) {
+      if (SEVERITY_ORDER.indexOf(f.severity) > SEVERITY_ORDER.indexOf("P3")) {
+        err(`finding ${f.id}: ${f.severity} against agent-inferred (circular) intent ${f.intentRef} (cap P3 until the should-be model is confirmed)`);
+      }
+      const hasProvisionalNote = Array.isArray(f.openQuestions) && f.openQuestions.some((q) => /agent_inferred|provisional|confirm/i.test(q || ""));
+      if (!hasProvisionalNote) {
+        err(`finding ${f.id}: judged against agent-inferred intent ${f.intentRef} but carries no provisional open question`);
+      }
     }
   }
 

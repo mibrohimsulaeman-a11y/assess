@@ -21,7 +21,9 @@ by the dashboard. Authoritative definition: `@assess/core` (`src/types.ts` +
     "factLayerRole": "deterministic_evidence_substrate",
     "runtimeSignalsAreFinalFindings": false,
     "finalFindingsSource": "agent_review_required" | "agent_review" | "human_review",
-    "note": "..."
+    "note": "...",
+    "adapterRuns?": [LanguageAdapterRunMeta],
+    "frameworkRuns?": [FrameworkPackRunMeta]
   },
   "intentModel": IntentModelSummary,
   "assessmentNodes": [SemanticAssessmentNode],
@@ -41,6 +43,8 @@ by the dashboard. Authoritative definition: `@assess/core` (`src/types.ts` +
 | Field | Producer | Meaning |
 |---|---|---|
 | `nodes`, `edges`, `areas`, `coverage` | runtime | deterministic facts + coverage substrate |
+| `artifact.adapterRuns` | runtime | language adapter coverage and limitations |
+| `artifact.frameworkRuns` | runtime | framework pack coverage, emitted fact counts, and limitations |
 | `candidateSignals` | runtime | evidence-backed signals requiring review |
 | `review.decisions.json` | agent/human review | sidecar audit trail: one decision per runtime candidate |
 | `assessmentNodes` | agent/human review | semantic capabilities, workflows, risk areas, open questions |
@@ -101,6 +105,45 @@ runtime-review metadata:
 Candidate signals are shown in the dashboard as fact-layer evidence. They are not
 mixed with final findings.
 
+## FrameworkPackRunMeta
+
+Framework packs run after language adapters. They emit deterministic
+endpoint/resource/config facts and framework edges; they do not produce final
+findings or behavioral claims.
+
+```jsonc
+{
+  "packId": "express-v1",
+  "displayName": "Express/Fastify framework pack",
+  "frameworkIds": ["Express"],
+  "languageIds": ["JavaScript", "TypeScript"],
+  "detected": true,
+  "confidence": "HIGH" | "MED" | "LOW",
+  "endpointNodeCount": 2,
+  "resourceNodeCount": 0,
+  "configNodeCount": 0,
+  "frameworkEdgeCount": 2,
+  "observationCount": 2,
+  "limitations": ["does not resolve dynamic route path composition"]
+}
+```
+
+M6 endpoint nodes use `type: "endpoint"` and are connected by `routes` edges:
+
+```jsonc
+{
+  "id": "endpoint:express:src/server.ts:get:/users",
+  "type": "endpoint",
+  "name": "GET /users",
+  "filePath": "src/server.ts",
+  "lineRange": [12, 12],
+  "tags": ["framework:express", "http", "route", "method:get"]
+}
+```
+
+Framework packs may prove that a literal endpoint declaration exists. They do
+not prove auth/RBAC, middleware order, request/response schema correctness,
+handler behavior, or business correctness.
 
 ## ReviewDecisionFile sidecar
 
@@ -164,6 +207,8 @@ empty. The validator rejects final findings without `source`, `reasoningSummary`
 - P0/P1 cannot be based on unproven absence.
 - P0/P1 cannot be based on unverifiable evidence.
 - P0 cannot be raised against `UNCONFIRMED` intent.
+- `intent→code` findings judged against `agent_inferred` (circular) intent are capped at P3 and must carry a provisional open question (G3). Intent `provenance` (`user_confirmed` / `doc_backed` / `agent_inferred`) lives on `intentMeta`; `agent_inferred` also caps headline trust at `inferred` (P6).
+- `coverage.intentCoverage` (when present) reports alignment coverage — how many components map to a confirmed capability — and the headline must state it (P8).
 - Runtime cannot publish final findings when the artifact says agent review is required.
 - Reviewed graphs require at least one `assessmentNode` and zero pending candidates.
 - Accepted candidates require `promotedFindingId`; rejected candidates must not have one.

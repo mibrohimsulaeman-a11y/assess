@@ -12,17 +12,34 @@ export interface ValidationIssue {
   message: string;
 }
 
-export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+/** Shared lookups derived once and threaded into each sub-validator. */
+interface GraphIndex {
+  nodeIds: Set<string>;
+  filePaths: Set<string>;
+  findingIds: Set<string>;
+  candidateSignalIds: Set<string>;
+  assessmentNodeFindingIds: Set<string>;
+  circularIntentIds: Set<string>;
+  reviewComplete: boolean;
+  knownEndpoint: (id: string) => boolean;
+  knownEvidenceRef: (ref: string) => boolean;
+}
+
+function buildIndex(graph: AssessmentGraph): GraphIndex {
   const nodeIds = new Set([...graph.nodes, ...graph.intents].map((n) => n.id));
   const filePaths = new Set(graph.nodes.map((n) => n.filePath).filter((p): p is string => !!p));
   const findingIds = new Set(graph.findings.map((f) => f.id));
   const candidateSignalIds = new Set(graph.candidateSignals.map((s) => s.id));
   const assessmentNodeFindingIds = new Set<string>();
   for (const n of graph.assessmentNodes) for (const id of n.findingIds) assessmentNodeFindingIds.add(id);
+  // G3: intents inferred by the agent from this same codebase (circular).
+  const circularIntentIds = new Set(
+    [...graph.intents, ...graph.nodes]
+      .filter((n) => (n.type === "intent" || n.type === "capability") && n.intentMeta?.provenance === "agent_inferred")
+      .map((n) => n.id),
+  );
   const reviewComplete = graph.artifact.finalFindingsSource === "agent_review" || graph.artifact.finalFindingsSource === "human_review";
-  const knownEndpoint = (id: string) =>
-    nodeIds.has(id) || id === "baseline" || id === "intent:UNCONFIRMED";
+  const knownEndpoint = (id: string) => nodeIds.has(id) || id === "baseline" || id === "intent:UNCONFIRMED";
   const knownEvidenceRef = (ref: string) => {
     if (!ref) return false;
     if (knownEndpoint(ref) || findingIds.has(ref) || candidateSignalIds.has(ref)) return true;
@@ -35,31 +52,56 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
     }
     return false;
   };
+  return {
+    nodeIds, filePaths, findingIds, candidateSignalIds, assessmentNodeFindingIds,
+    circularIntentIds, reviewComplete, knownEndpoint, knownEvidenceRef,
+  };
+}
 
+export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue[] {
+  const ix = buildIndex(graph);
+  return [
+    ...checkArtifactShape(graph),
+    ...checkReferentialIntegrity(graph, ix),
+    ...checkFindings(graph, ix),
+    ...checkCandidateSignals(graph, ix),
+    ...checkAssessmentNodes(graph, ix),
+    ...checkCoverage(graph),
+  ];
+}
+
+function checkArtifactShape(graph: AssessmentGraph): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   if (graph.version !== "3.0.0") {
     issues.push({ level: "error", code: "GRAPH_VERSION", message: `version must be 3.0.0, got ${graph.version}` });
   }
   if (graph.artifact.runtimeSignalsAreFinalFindings !== false) {
     issues.push({ level: "error", code: "ARTIFACT_SIGNAL_GATE", message: "artifact.runtimeSignalsAreFinalFindings must be false" });
   }
+  return issues;
+}
 
-  // referential integrity
+function checkReferentialIntegrity(graph: AssessmentGraph, ix: GraphIndex): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   for (const e of graph.edges) {
-    if (!knownEndpoint(e.source)) issues.push({ level: "error", code: "EDGE_SOURCE", message: `edge ${e.id} source ${e.source} not found` });
-    if (!knownEndpoint(e.target)) issues.push({ level: "error", code: "EDGE_TARGET", message: `edge ${e.id} target ${e.target} not found` });
-    if (e.gap?.findingId && !findingIds.has(e.gap.findingId) && !candidateSignalIds.has(e.gap.findingId)) {
+    if (!ix.knownEndpoint(e.source)) issues.push({ level: "error", code: "EDGE_SOURCE", message: `edge ${e.id} source ${e.source} not found` });
+    if (!ix.knownEndpoint(e.target)) issues.push({ level: "error", code: "EDGE_TARGET", message: `edge ${e.id} target ${e.target} not found` });
+    if (e.gap?.findingId && !ix.findingIds.has(e.gap.findingId) && !ix.candidateSignalIds.has(e.gap.findingId)) {
       issues.push({ level: "error", code: "EDGE_FINDING", message: `edge ${e.id} references unknown finding or candidate signal ${e.gap.findingId}` });
     }
-    if (e.gap?.candidateSignalId && !candidateSignalIds.has(e.gap.candidateSignalId)) {
+    if (e.gap?.candidateSignalId && !ix.candidateSignalIds.has(e.gap.candidateSignalId)) {
       issues.push({ level: "error", code: "EDGE_CANDIDATE_SIGNAL", message: `edge ${e.id} references unknown candidate signal ${e.gap.candidateSignalId}` });
     }
   }
+  return issues;
+}
 
-  // finding / candidate target integrity
+function checkFindings(graph: AssessmentGraph, ix: GraphIndex): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   if (graph.artifact.finalFindingsSource === "agent_review_required" && graph.findings.length > 0) {
     issues.push({ level: "error", code: "FINAL_FINDING_WITHOUT_REVIEW", message: "final findings present while artifact.finalFindingsSource is agent_review_required" });
   }
-  if (reviewComplete) {
+  if (ix.reviewComplete) {
     if (graph.assessmentNodes.length === 0) {
       issues.push({ level: "error", code: "REVIEWED_WITHOUT_SEMANTIC_NODES", message: "reviewed artifact requires at least one assessmentNode" });
     }
@@ -69,14 +111,14 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
       }
     }
     for (const f of graph.findings) {
-      if (!assessmentNodeFindingIds.has(f.id)) {
+      if (!ix.assessmentNodeFindingIds.has(f.id)) {
         issues.push({ level: "error", code: "FINAL_FINDING_UNLINKED", message: `finding ${f.id} must be referenced by at least one assessmentNode` });
       }
     }
   }
   for (const f of graph.findings) {
     for (const t of f.targetNodeIds) {
-      if (!nodeIds.has(t) && t !== "intent:UNCONFIRMED") {
+      if (!ix.nodeIds.has(t) && t !== "intent:UNCONFIRMED") {
         issues.push({ level: "error", code: "FINDING_TARGET", message: `finding ${f.id} target ${t} not found` });
       }
     }
@@ -90,13 +132,18 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
       issues.push({ level: "error", code: "FINAL_FINDING_COUNTER_EVIDENCE", message: `finding ${f.id} requires counterEvidenceChecked` });
     }
     for (const ref of f.evidenceRefs ?? []) {
-      if (!knownEvidenceRef(ref)) issues.push({ level: "error", code: "FINAL_FINDING_EVIDENCE_REF", message: `finding ${f.id} evidenceRef ${ref} not found` });
+      if (!ix.knownEvidenceRef(ref)) issues.push({ level: "error", code: "FINAL_FINDING_EVIDENCE_REF", message: `finding ${f.id} evidenceRef ${ref} not found` });
     }
-    issues.push(...honestyChecks(f));
+    issues.push(...honestyChecks(f, ix));
   }
+  return issues;
+}
+
+function checkCandidateSignals(graph: AssessmentGraph, ix: GraphIndex): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   for (const s of graph.candidateSignals) {
     for (const t of s.targetNodeIds) {
-      if (!nodeIds.has(t) && t !== "intent:UNCONFIRMED") {
+      if (!ix.nodeIds.has(t) && t !== "intent:UNCONFIRMED") {
         issues.push({ level: "error", code: "CANDIDATE_TARGET", message: `candidate signal ${s.id} target ${t} not found` });
       }
     }
@@ -117,34 +164,42 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
     if ((s.reviewStatus === "accepted" || s.reviewStatus === "rejected") && !s.counterEvidenceChecked.length) {
       issues.push({ level: "error", code: "CANDIDATE_REVIEW_COUNTER_EVIDENCE", message: `candidate signal ${s.id} reviewed status requires counterEvidenceChecked` });
     }
-    if (s.promotedFindingId && !findingIds.has(s.promotedFindingId)) {
+    if (s.promotedFindingId && !ix.findingIds.has(s.promotedFindingId)) {
       issues.push({ level: "error", code: "CANDIDATE_PROMOTED_FINDING", message: `candidate signal ${s.id} promotedFindingId ${s.promotedFindingId} not found` });
     }
     for (const ref of s.evidenceRefs) {
-      if (!knownEvidenceRef(ref)) issues.push({ level: "error", code: "CANDIDATE_EVIDENCE_REF", message: `candidate signal ${s.id} evidenceRef ${ref} not found` });
+      if (!ix.knownEvidenceRef(ref)) issues.push({ level: "error", code: "CANDIDATE_EVIDENCE_REF", message: `candidate signal ${s.id} evidenceRef ${ref} not found` });
     }
-    issues.push(...honestyChecks(s));
+    issues.push(...honestyChecks(s, ix));
   }
+  return issues;
+}
+
+function checkAssessmentNodes(graph: AssessmentGraph, ix: GraphIndex): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
   for (const n of graph.assessmentNodes) {
     for (const id of n.candidateSignalIds) {
-      if (!candidateSignalIds.has(id)) issues.push({ level: "error", code: "ASSESSMENT_NODE_SIGNAL", message: `assessmentNode ${n.id} candidate signal ${id} not found` });
+      if (!ix.candidateSignalIds.has(id)) issues.push({ level: "error", code: "ASSESSMENT_NODE_SIGNAL", message: `assessmentNode ${n.id} candidate signal ${id} not found` });
     }
     for (const id of n.findingIds) {
-      if (!findingIds.has(id)) issues.push({ level: "error", code: "ASSESSMENT_NODE_FINDING", message: `assessmentNode ${n.id} finding ${id} not found` });
+      if (!ix.findingIds.has(id)) issues.push({ level: "error", code: "ASSESSMENT_NODE_FINDING", message: `assessmentNode ${n.id} finding ${id} not found` });
     }
     for (const ref of n.evidenceRefs) {
-      if (!knownEvidenceRef(ref)) issues.push({ level: "error", code: "ASSESSMENT_NODE_EVIDENCE_REF", message: `assessmentNode ${n.id} evidenceRef ${ref} not found` });
+      if (!ix.knownEvidenceRef(ref)) issues.push({ level: "error", code: "ASSESSMENT_NODE_EVIDENCE_REF", message: `assessmentNode ${n.id} evidenceRef ${ref} not found` });
     }
   }
+  return issues;
+}
 
-  // coverage completeness: every assessable node must carry a status
+function checkCoverage(graph: AssessmentGraph): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  // every assessable node must carry a status
   for (const n of graph.nodes) {
     if (n.type === "intent" || n.type === "capability") continue;
     if (!n.assessment) {
       issues.push({ level: "error", code: "NO_COVERAGE", message: `node ${n.id} has no assessment overlay` });
     }
   }
-
   // coverage manifest must account for every assessable node
   const counted =
     graph.coverage.byStatus.assessed +
@@ -158,11 +213,12 @@ export function validateAssessmentGraph(graph: AssessmentGraph): ValidationIssue
   if ((graph.coverage.byStatus.not_assessed > 0 || graph.coverage.byStatus.coverage_insufficient > 0) && graph.coverage.gaps.length === 0) {
     issues.push({ level: "error", code: "COVERAGE_GAPS_MISSING", message: "coverage manifest has not_assessed/coverage_insufficient nodes but no coverage gaps" });
   }
-
   return issues;
 }
 
-function honestyChecks(f: Finding | CandidateSignal): ValidationIssue[] {
+const SEVERITY_ORDER = ["P3", "P2", "P1", "P0"];
+
+function honestyChecks(f: Finding | CandidateSignal, ix: GraphIndex): ValidationIssue[] {
   const out: ValidationIssue[] = [];
   // missing / dead-code claims require a missing-code proof
   const claimsAbsence =
@@ -181,6 +237,17 @@ function honestyChecks(f: Finding | CandidateSignal): ValidationIssue[] {
   }
   if (f.intentRef === "UNCONFIRMED" && f.severity === "P0") {
     out.push({ level: "error", code: "UNCONFIRMED_P0", message: `finding ${f.id} is P0 against UNCONFIRMED intent (cap P2)` });
+  }
+  // G3: a finding judged against agent-inferred (circular) intent must stay <=P3
+  // and carry an explicit provisional open question.
+  if (f.direction === "intent_to_code" && f.intentRef && ix.circularIntentIds.has(f.intentRef)) {
+    if (SEVERITY_ORDER.indexOf(f.severity) > SEVERITY_ORDER.indexOf("P3")) {
+      out.push({ level: "error", code: "CIRCULAR_INTENT_SEVERITY", message: `finding ${f.id} is ${f.severity} against agent-inferred (circular) intent ${f.intentRef} (cap P3)` });
+    }
+    const hasProvisionalNote = (f.openQuestions ?? []).some((q) => /agent_inferred|provisional|confirm/i.test(q));
+    if (!hasProvisionalNote) {
+      out.push({ level: "error", code: "CIRCULAR_INTENT_NO_OPEN_QUESTION", message: `finding ${f.id} judged against agent-inferred intent ${f.intentRef} but carries no provisional open question` });
+    }
   }
   return out;
 }

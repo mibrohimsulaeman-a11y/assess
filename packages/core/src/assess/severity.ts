@@ -36,6 +36,8 @@ export interface SeverityInputs {
   confidence: Confidence;
   /** true if the alignment finding's intent is not yet confirmed */
   intentUnconfirmed?: boolean;
+  /** true if the intent was agent-inferred from the same codebase (circular) — caps at P3 */
+  circularIntent?: boolean;
   /** for missing/dead-code findings: result of the missing-code proof */
   missingCodeResult?: MissingCodeResult;
   /** path-based security floor (auth/payment/crypto/migration/secret) */
@@ -82,6 +84,14 @@ export function resolveSeverity(input: SeverityInputs): SeverityDecision {
     severity = next;
   }
 
+  // Circular intent cap (G3): intent the agent inferred from this same codebase
+  // cannot, on its own, justify a high-severity "you failed to build X" claim.
+  if (input.circularIntent) {
+    const next = cap(severity, "P3");
+    if (next !== severity) applied.push("agent-inferred (circular) intent → ≤P3 until confirmed");
+    severity = next;
+  }
+
   // Unproven absence cap
   if (input.missingCodeResult && input.missingCodeResult !== "absent") {
     const next = cap(severity, "P2");
@@ -99,12 +109,28 @@ export function resolveSeverity(input: SeverityInputs): SeverityDecision {
   return { severity, applied };
 }
 
-/** The weakest evidence strength across a set of findings — the report's headline_trust. */
-export function headlineTrust(findings: Finding[]): EvidenceStrength {
+/**
+ * The weakest evidence strength across a set of findings — the report's headline_trust.
+ * P6: an optional provenance ceiling caps the result. No matter how strong the
+ * per-finding evidence is, an alignment story told against agent-inferred intent
+ * cannot be reported as "verified" — the should-be side was never confirmed.
+ */
+export function headlineTrust(
+  findings: Finding[],
+  provenanceCeiling: EvidenceStrength = "verified",
+): EvidenceStrength {
   const rank: Record<EvidenceStrength, number> = { verified: 2, inferred: 1, unverifiable: 0 };
   let weakest: EvidenceStrength = "verified";
   for (const f of findings) {
     if (rank[f.evidence.strength] < rank[weakest]) weakest = f.evidence.strength;
   }
+  if (rank[provenanceCeiling] < rank[weakest]) weakest = provenanceCeiling;
   return weakest;
+}
+
+/** P6: the ceiling an intent provenance puts on overall headline trust. */
+export function provenanceTrustCeiling(
+  provenance: "user_confirmed" | "doc_backed" | "agent_inferred" | null,
+): EvidenceStrength {
+  return provenance === "agent_inferred" ? "inferred" : "verified";
 }

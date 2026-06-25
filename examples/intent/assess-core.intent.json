@@ -1,6 +1,6 @@
 {
   "project": "assess-core",
-  "_comment": "Sample CONFIRMED intent spec for the deterministic core. expectedComponentIds reference real node ids the scanner emits (function:<relPath>:<name> / file:<relPath>). The last process intentionally references a component that does NOT exist, to demonstrate an evidence-bound `missing` finding with a bounded missing-code proof. Run: node packages/core/runtime/assess-run.mjs --repo packages/core/src --intent examples/intent/assess-core.intent.json --out .assessment",
+  "_comment": "Sample CONFIRMED intent spec for the deterministic core. expectedComponentIds reference real node ids the scanner emits (function:<relPath>:<name> / file:<relPath>). The coverage-manifest capability now models reconcile at two honest levels: the per-span verdict primitive reconcileSpan (which EXISTS -> demonstrates a `satisfied` intent->code), and a cross-run orchestrator reconcilePriorRun (which genuinely does NOT exist anywhere in the index -> demonstrates an evidence-bound `missing` finding with a bounded missing-code proof). Run: node packages/core/runtime/assess-run.mjs --repo packages/core/src --intent examples/intent/assess-core.intent.json --out .assessment",
   "capabilities": [
     {
       "id": "capability:honesty-gate",
@@ -9,7 +9,9 @@
       "status": "CONFIRMED",
       "ownsComponentIds": [
         "function:assess/severity.ts:resolveSeverity",
-        "function:assess/missing-code-proof.ts:computeMissingCodeProof"
+        "function:assess/severity.ts:headlineTrust",
+        "function:assess/missing-code-proof.ts:computeMissingCodeProof",
+        "function:assess/missing-code-proof.ts:absenceWording"
       ],
       "processes": [
         {
@@ -33,7 +35,10 @@
       "label": "Coverage manifest",
       "description": "Every assessable node carries an explicit coverage status; nothing is silently skipped.",
       "status": "CONFIRMED",
-      "ownsComponentIds": ["function:assess/coverage.ts:buildCoverageManifest"],
+      "ownsComponentIds": [
+        "function:assess/coverage.ts:buildCoverageManifest",
+        "function:assess/coverage.ts:areaCoverage"
+      ],
       "processes": [
         {
           "id": "intent:coverage-manifest.account-every-node",
@@ -43,9 +48,16 @@
           "expectedComponentIds": ["function:assess/coverage.ts:buildCoverageManifest"]
         },
         {
-          "id": "intent:coverage-manifest.reconcile-spans",
-          "label": "Reconcile prior verdicts across reformat-only changes",
+          "id": "intent:coverage-manifest.reconcile-span-verdict",
+          "label": "Decide reuse vs rejudge for a single span",
           "invariant": "a reformat (same normalized fingerprint) must reuse the prior verdict, not re-judge",
+          "criticalPath": false,
+          "expectedComponentIds": ["function:fact-layer/fingerprint.ts:reconcileSpan"]
+        },
+        {
+          "id": "intent:coverage-manifest.reconcile-prior-run",
+          "label": "Reconcile a whole prior run across reformat-only changes",
+          "invariant": "loading a prior assessment graph must carry every still-valid verdict forward, re-judging only spans whose normalized fingerprint changed",
           "criticalPath": false,
           "expectedComponentIds": ["function:overlay/reconcile.ts:reconcilePriorRun"]
         }

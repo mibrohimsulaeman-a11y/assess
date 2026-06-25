@@ -87,81 +87,18 @@ export function applyReviewDecisions(
     a.candidateSignalId.localeCompare(b.candidateSignalId),
   );
 
-  for (const decision of orderedDecisions) {
-    const candidate = candidateById.get(decision.candidateSignalId);
-    if (!candidate) throw new Error(`decision references unknown candidate signal ${decision.candidateSignalId}`);
-    const index = graph.candidateSignals.findIndex((signal) => signal.id === candidate.id);
-    if (index < 0) throw new Error(`candidate signal ${candidate.id} disappeared during review apply`);
-
-    if (decision.decision === "needs_more_evidence") {
-      if (!allowNeedsMoreEvidence) {
-        throw new Error(`candidate signal ${candidate.id}: needs_more_evidence is not allowed in strict reviewed apply`);
-      }
-      graph.candidateSignals[index] = {
-        ...candidate,
-        reviewStatus: "needs_agent_review",
-        openQuestions: normalizeStringArray([
-          ...(candidate.openQuestions ?? []),
-          ...(decision.openQuestions ?? []),
-          decision.rationale,
-        ]),
-      };
-      continue;
-    }
-
-    const semanticNodeInput = decision.semanticNode;
-    if (!semanticNodeInput) {
-      throw new Error(`candidate signal ${candidate.id}: ${decision.decision} decision requires semanticNode`);
-    }
-    if (existingAssessmentNodeIds.has(semanticNodeInput.id)) {
-      throw new Error(`duplicate assessment node id ${semanticNodeInput.id}`);
-    }
-
-    if (decision.decision === "reject") {
-      if (decision.finding) {
-        throw new Error(`candidate signal ${candidate.id}: reject decision must not create a finding`);
-      }
-      graph.candidateSignals[index] = {
-        ...candidate,
-        reviewStatus: "rejected",
-        counterEvidenceChecked: normalizeStringArray([
-          ...(candidate.counterEvidenceChecked ?? []),
-          ...decision.counterEvidenceChecked,
-        ]),
-        openQuestions: normalizeStringArray(decision.openQuestions ?? []),
-        promotedFindingId: undefined,
-      };
-      const semanticNode = buildSemanticNode(semanticNodeInput, decision, candidate, null, finalFindingsSource);
-      existingAssessmentNodeIds.add(semanticNode.id);
-      newAssessmentNodes.push(semanticNode);
-      continue;
-    }
-
-    const findingInput = decision.finding;
-    if (!findingInput) {
-      throw new Error(`candidate signal ${candidate.id}: accept decision requires finding`);
-    }
-    if (existingFindingIds.has(findingInput.id)) {
-      throw new Error(`duplicate finding id ${findingInput.id}`);
-    }
-
-    const finding = buildPromotedFinding(candidate, decision, findingInput, finalFindingsSource);
-    existingFindingIds.add(finding.id);
-    newFindings.push(finding);
-    promotedCandidateToFinding.set(candidate.id, finding.id);
-
-    graph.candidateSignals[index] = {
-      ...candidate,
-      reviewStatus: "accepted",
-      promotedFindingId: finding.id,
-      counterEvidenceChecked: finding.counterEvidenceChecked ?? [],
-      openQuestions: finding.openQuestions ?? [],
-    };
-
-    const semanticNode = buildSemanticNode(semanticNodeInput, decision, candidate, finding, finalFindingsSource);
-    existingAssessmentNodeIds.add(semanticNode.id);
-    newAssessmentNodes.push(semanticNode);
-  }
+  const ctx: ApplyContext = {
+    graph,
+    finalFindingsSource,
+    allowNeedsMoreEvidence,
+    candidateById,
+    existingFindingIds,
+    existingAssessmentNodeIds,
+    promotedCandidateToFinding,
+    newFindings,
+    newAssessmentNodes,
+  };
+  for (const decision of orderedDecisions) applyOneDecision(ctx, decision);
 
   graph.findings = sortById([...graph.findings, ...newFindings]);
   graph.assessmentNodes = sortById([...graph.assessmentNodes, ...newAssessmentNodes]);
@@ -178,6 +115,124 @@ export function applyReviewDecisions(
   recomputeSummary(graph);
 
   return graph;
+}
+
+/** Shared mutable accumulators threaded through the per-decision handlers. */
+interface ApplyContext {
+  graph: AssessmentGraph;
+  finalFindingsSource: ReviewSource;
+  allowNeedsMoreEvidence: boolean;
+  candidateById: Map<string, CandidateSignal>;
+  existingFindingIds: Set<string>;
+  existingAssessmentNodeIds: Set<string>;
+  promotedCandidateToFinding: Map<string, string>;
+  newFindings: Finding[];
+  newAssessmentNodes: SemanticAssessmentNode[];
+}
+
+/** Dispatch one review decision to the matching branch handler, mutating ctx. */
+function applyOneDecision(ctx: ApplyContext, decision: ReviewCandidateDecision): void {
+  const candidate = ctx.candidateById.get(decision.candidateSignalId);
+  if (!candidate) throw new Error(`decision references unknown candidate signal ${decision.candidateSignalId}`);
+  const index = ctx.graph.candidateSignals.findIndex((signal) => signal.id === candidate.id);
+  if (index < 0) throw new Error(`candidate signal ${candidate.id} disappeared during review apply`);
+
+  if (decision.decision === "needs_more_evidence") {
+    applyNeedsMoreEvidence(ctx, decision, candidate, index);
+    return;
+  }
+
+  const semanticNodeInput = decision.semanticNode;
+  if (!semanticNodeInput) {
+    throw new Error(`candidate signal ${candidate.id}: ${decision.decision} decision requires semanticNode`);
+  }
+  if (ctx.existingAssessmentNodeIds.has(semanticNodeInput.id)) {
+    throw new Error(`duplicate assessment node id ${semanticNodeInput.id}`);
+  }
+
+  if (decision.decision === "reject") {
+    applyReject(ctx, decision, candidate, index, semanticNodeInput);
+    return;
+  }
+  applyAccept(ctx, decision, candidate, index, semanticNodeInput);
+}
+
+function applyNeedsMoreEvidence(
+  ctx: ApplyContext,
+  decision: ReviewCandidateDecision,
+  candidate: CandidateSignal,
+  index: number,
+): void {
+  if (!ctx.allowNeedsMoreEvidence) {
+    throw new Error(`candidate signal ${candidate.id}: needs_more_evidence is not allowed in strict reviewed apply`);
+  }
+  ctx.graph.candidateSignals[index] = {
+    ...candidate,
+    reviewStatus: "needs_agent_review",
+    openQuestions: normalizeStringArray([
+      ...(candidate.openQuestions ?? []),
+      ...(decision.openQuestions ?? []),
+      decision.rationale,
+    ]),
+  };
+}
+
+function applyReject(
+  ctx: ApplyContext,
+  decision: ReviewCandidateDecision,
+  candidate: CandidateSignal,
+  index: number,
+  semanticNodeInput: ReviewSemanticNodeInput,
+): void {
+  if (decision.finding) {
+    throw new Error(`candidate signal ${candidate.id}: reject decision must not create a finding`);
+  }
+  ctx.graph.candidateSignals[index] = {
+    ...candidate,
+    reviewStatus: "rejected",
+    counterEvidenceChecked: normalizeStringArray([
+      ...(candidate.counterEvidenceChecked ?? []),
+      ...decision.counterEvidenceChecked,
+    ]),
+    openQuestions: normalizeStringArray(decision.openQuestions ?? []),
+    promotedFindingId: undefined,
+  };
+  const semanticNode = buildSemanticNode(semanticNodeInput, decision, candidate, null, ctx.finalFindingsSource);
+  ctx.existingAssessmentNodeIds.add(semanticNode.id);
+  ctx.newAssessmentNodes.push(semanticNode);
+}
+
+function applyAccept(
+  ctx: ApplyContext,
+  decision: ReviewCandidateDecision,
+  candidate: CandidateSignal,
+  index: number,
+  semanticNodeInput: ReviewSemanticNodeInput,
+): void {
+  const findingInput = decision.finding;
+  if (!findingInput) {
+    throw new Error(`candidate signal ${candidate.id}: accept decision requires finding`);
+  }
+  if (ctx.existingFindingIds.has(findingInput.id)) {
+    throw new Error(`duplicate finding id ${findingInput.id}`);
+  }
+
+  const finding = buildPromotedFinding(candidate, decision, findingInput, ctx.finalFindingsSource);
+  ctx.existingFindingIds.add(finding.id);
+  ctx.newFindings.push(finding);
+  ctx.promotedCandidateToFinding.set(candidate.id, finding.id);
+
+  ctx.graph.candidateSignals[index] = {
+    ...candidate,
+    reviewStatus: "accepted",
+    promotedFindingId: finding.id,
+    counterEvidenceChecked: finding.counterEvidenceChecked ?? [],
+    openQuestions: finding.openQuestions ?? [],
+  };
+
+  const semanticNode = buildSemanticNode(semanticNodeInput, decision, candidate, finding, ctx.finalFindingsSource);
+  ctx.existingAssessmentNodeIds.add(semanticNode.id);
+  ctx.newAssessmentNodes.push(semanticNode);
 }
 
 function assertDecisionFile(file: ReviewDecisionFile): void {

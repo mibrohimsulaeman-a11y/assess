@@ -4,6 +4,7 @@ import { z } from "zod";
 // what the pipeline writes before the dashboard ever reads it.
 
 export const SeveritySchema = z.enum(["P0", "P1", "P2", "P3"]);
+export const ConfidenceSchema = z.enum(["HIGH", "MED", "LOW"]);
 export const EvidenceStrengthSchema = z.enum(["verified", "inferred", "unverifiable"]);
 export const GapDirectionSchema = z.enum(["intent_to_code", "code_to_intent", "baseline_to_code"]);
 export const CoverageStatusSchema = z.enum([
@@ -71,11 +72,15 @@ export const NodeAssessmentSchema = z.object({
   notAssessedReason: z.string().optional(),
 });
 
+export const IntentProvenanceSchema = z.enum(["user_confirmed", "doc_backed", "agent_inferred"]);
+
 export const IntentMetaSchema = z.object({
   status: z.enum(["CONFIRMED", "UNCONFIRMED"]),
   owns: z.array(z.string()).optional(),
   invariant: z.string().optional(),
   criticalPath: z.boolean().optional(),
+  provenance: IntentProvenanceSchema.optional(),
+  provenanceRef: z.string().optional(),
 });
 
 export const GraphNodeSchema = z.object({
@@ -124,7 +129,7 @@ export const FindingSchema = z.object({
   evidence: EvidenceSchema,
   intentRef: z.string().optional(),
   severity: SeveritySchema,
-  confidence: z.enum(["HIGH", "MED", "LOW"]),
+  confidence: ConfidenceSchema,
   explanation: z.string(),
   recommendation: z.string(),
   missingCodeProof: MissingCodeProofSchema.optional(),
@@ -156,7 +161,7 @@ export const SemanticAssessmentNodeSchema = z.object({
   name: z.string(),
   summary: z.string(),
   status: z.enum(["agent_inferred", "human_confirmed", "open_question"]),
-  confidence: z.enum(["HIGH", "MED", "LOW"]),
+  confidence: ConfidenceSchema,
   evidenceRefs: z.array(z.string()),
   candidateSignalIds: z.array(z.string()),
   findingIds: z.array(z.string()),
@@ -176,6 +181,21 @@ export const LanguageAdapterRunMetaSchema = z.object({
   limitations: z.array(z.string()),
 });
 
+export const FrameworkPackRunMetaSchema = z.object({
+  packId: z.string(),
+  displayName: z.string(),
+  frameworkIds: z.array(z.string()),
+  languageIds: z.array(z.string()),
+  detected: z.boolean(),
+  confidence: ConfidenceSchema,
+  endpointNodeCount: z.number().nonnegative(),
+  resourceNodeCount: z.number().nonnegative(),
+  configNodeCount: z.number().nonnegative(),
+  frameworkEdgeCount: z.number().nonnegative(),
+  observationCount: z.number().nonnegative(),
+  limitations: z.array(z.string()),
+});
+
 export const AssessmentArtifactMetaSchema = z.object({
   type: z.literal("semantic_assessment"),
   factLayerRole: z.literal("deterministic_evidence_substrate"),
@@ -183,6 +203,7 @@ export const AssessmentArtifactMetaSchema = z.object({
   finalFindingsSource: z.enum(["agent_review_required", "agent_review", "human_review"]),
   note: z.string(),
   adapterRuns: z.array(LanguageAdapterRunMetaSchema).optional(),
+  frameworkRuns: z.array(FrameworkPackRunMetaSchema).optional(),
 });
 
 export const IntentModelSummarySchema = z.object({
@@ -207,6 +228,16 @@ export const AreaSchema = z.object({
   worstSeverity: SeveritySchema.nullable().optional(),
 });
 
+export const IntentCoverageSchema = z.object({
+  capabilitiesClaimed: z.number(),
+  componentsTotal: z.number(),
+  componentsMapped: z.number(),
+  componentsUnmapped: z.number(),
+  mappedRatio: z.number(),
+  weakestProvenance: IntentProvenanceSchema.nullable(),
+  note: z.string(),
+});
+
 export const CoverageManifestSchema = z.object({
   totalAreas: z.number(),
   totalNodes: z.number(),
@@ -217,6 +248,7 @@ export const CoverageManifestSchema = z.object({
     status: CoverageStatusSchema,
     reason: z.string(),
   })),
+  intentCoverage: IntentCoverageSchema.optional(),
 });
 
 export const AssessmentGraphSchema = z.object({

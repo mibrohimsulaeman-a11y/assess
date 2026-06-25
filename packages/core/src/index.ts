@@ -37,3 +37,7 @@ export * from "./review/apply-review-decisions.js";
 // adapter boundary
 export * from "./adapters/scan-result.js";
 export * from "./adapters/language-adapter.js";
+
+// framework pack boundary
+export * from "./frameworks/scan-result.js";
+export * from "./frameworks/framework-pack.js";

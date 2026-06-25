@@ -259,10 +259,13 @@ const handlers = {
     const defaultOutDir = path.join(repoRoot, ".assessment");
     const outDir = resolveInsideProject(args.outDir || defaultOutDir, "outDir");
     const intentSpecPath = args.intentSpecPath ? resolveInsideProject(args.intentSpecPath, "intentSpecPath") : undefined;
-    const { graph, outPath, summary } = assessRepo({ repoRoot, intentSpecPath, outDir });
+    const { graph, outPath, summary, intentGate } = assessRepo({ repoRoot, intentSpecPath, outDir });
     return {
       summary: summary.headline,
       mode: summary.hasIntent ? "intent-bound" : "baseline-only",
+      // G1: the intent-confirmation gate. When state !== "confirmed" the agent must
+      // stop and confirm intent with the user before presenting alignment results.
+      intentGate,
       outPath,
       dashboard: (() => {
         const readiness = dashboardReadiness(graph);
@@ -290,6 +293,7 @@ const handlers = {
       candidateBySeverity: graph.summary.candidateBySeverity,
       headlineTrust: graph.coverage.headlineTrust,
       coverage: graph.coverage.byStatus,
+      intentCoverage: graph.coverage.intentCoverage,
     };
   },
   validate_graph(args) {
@@ -403,28 +407,54 @@ const handlers = {
   export_report(args) {
     const g = readGraph(args.graphPath);
     const readiness = dashboardReadiness(g);
-    if (!readiness.readyForUser && args.allowRuntimeOnly !== true) {
+    const runtimeOnly = !readiness.readyForUser;
+    if (runtimeOnly && args.allowRuntimeOnly !== true) {
       throw new Error(readiness.blockedReason);
     }
+    // The report's job is the SEMANTIC conclusion + the evidence and coverage that
+    // make it trustworthy. Deterministic candidate signals are substrate: they fold
+    // INTO findings as evidence, and aggregate as coverage — they are not the report.
+    // Reviewed-and-rejected signals are clustered (not re-listed per item); the raw
+    // per-item runtime list lives in an appendix, shown only for runtime-only graphs
+    // or when explicitly requested for debugging.
     const lines = [];
+    const finalFindings = g.findings || [];
+    const candidateSignals = g.candidateSignals || [];
+
     lines.push(`# Assessment report — ${g.project.name}`, "");
     lines.push(`> ${g.summary.headline}`, "");
     lines.push(`- Commit: \`${g.binding.assessedAtCommit}\``);
     lines.push(`- Intent spec: \`${g.binding.intentSpecHash}\``);
-    lines.push(`- Headline trust: **${g.coverage.headlineTrust}**`);
-    lines.push(`- Coverage: ${JSON.stringify(g.coverage.byStatus)}`);
-    lines.push(`- Final findings: ${(g.findings || []).length}`);
-    lines.push(`- Runtime candidate signals: ${(g.candidateSignals || []).length}`);
     lines.push(`- Final findings source: ${g.artifact?.finalFindingsSource ?? "legacy"}`, "");
-    if (g.coverage.gaps && g.coverage.gaps.length) {
-      lines.push("## Coverage gaps", "");
-      for (const gap of g.coverage.gaps) lines.push(`- **${gap.scope}** — ${gap.status}: ${gap.reason}`);
-      lines.push("");
+
+    // --- Coverage & honesty: promoted to a first-class section ---
+    lines.push("## Coverage & honesty", "");
+    lines.push(`- Headline trust: **${g.coverage.headlineTrust}**`);
+    const ic = g.coverage.intentCoverage;
+    if (ic) {
+      if (ic.capabilitiesClaimed > 0) {
+        const pct = Math.round((ic.mappedRatio ?? 0) * 100);
+        lines.push(`- Alignment coverage: **${ic.componentsMapped}/${ic.componentsTotal} components (${pct}%)** across ${ic.capabilitiesClaimed} confirmed capability(ies); intent provenance: **${ic.weakestProvenance ?? "unknown"}**`);
+        lines.push(`  - Only this mapped surface was assessed for intent↔code alignment; the rest passed through baseline→code only.`);
+      } else {
+        lines.push(`- Alignment coverage: **none** — ${ic.note}`);
+      }
     }
+    lines.push(`- Code coverage: ${JSON.stringify(g.coverage.byStatus)}`);
+    if (g.coverage.gaps && g.coverage.gaps.length) {
+      lines.push(`- NOT fully assessed (${g.coverage.gaps.length}):`);
+      for (const gap of g.coverage.gaps) lines.push(`  - **${gap.scope}** — ${gap.status}: ${gap.reason}`);
+    }
+    lines.push("");
+
+    // --- Findings: the semantic conclusion, with evidence folded in ---
     lines.push("## Findings", "");
-    const finalFindings = g.findings || [];
-    const candidateSignals = g.candidateSignals || [];
-    if (!finalFindings.length) lines.push("_No final findings. Runtime candidate signals require agent/human semantic review._", "");
+    lines.push(`${finalFindings.length} final finding(s), promoted from ${candidateSignals.length} deterministic candidate signal(s) by semantic review.`, "");
+    if (!finalFindings.length) {
+      lines.push(runtimeOnly
+        ? "_No final findings yet. This is a runtime-only graph; candidate signals require agent/human semantic review before they become findings (see appendix)._"
+        : "_No final findings: semantic review promoted none of the candidate signals into real problems._", "");
+    }
     for (const sev of ["P0", "P1", "P2", "P3"]) {
       const fs2 = finalFindings.filter((f) => f.severity === sev);
       if (!fs2.length) continue;
@@ -434,18 +464,47 @@ const handlers = {
         lines.push(`  - Evidence (${f.evidence.strength}): ${f.evidence.fact}`);
         if (f.reasoningSummary) lines.push(`  - Reasoning: ${f.reasoningSummary}`);
         if (f.missingCodeProof) lines.push(`  - Absence proof: ${f.missingCodeProof.result} (coverage ${f.missingCodeProof.coverage.actual}/${f.missingCodeProof.coverage.required})`);
+        if (f.openQuestions && f.openQuestions.length) lines.push(`  - Open question: ${f.openQuestions[0]}`);
         if (f.recommendation) lines.push(`  - Fix: ${f.recommendation}`);
       }
       lines.push("");
     }
-    if (candidateSignals.length) {
-      lines.push("## Runtime candidate signals", "");
-      lines.push("These are deterministic signals, not final findings. Promote only after agent semantic review.", "");
+
+    // --- Reviewed & dismissed: clustered by claim with rationale, not per-item ---
+    const rejected = candidateSignals.filter((s) => s.reviewStatus === "rejected");
+    if (rejected.length) {
+      const rationaleBySignal = new Map();
+      for (const node of g.assessmentNodes || []) {
+        for (const sid of node.candidateSignalIds || []) {
+          if (!rationaleBySignal.has(sid)) rationaleBySignal.set(sid, node.summary);
+        }
+      }
+      const clusters = new Map(); // claim -> { count, rationale, ids[] }
+      for (const s of rejected) {
+        const c = clusters.get(s.claim) ?? { count: 0, rationale: rationaleBySignal.get(s.id), ids: [] };
+        c.count += 1;
+        c.ids.push(s.id);
+        if (!c.rationale) c.rationale = rationaleBySignal.get(s.id);
+        clusters.set(s.claim, c);
+      }
+      lines.push("## Reviewed & dismissed", "");
+      lines.push(`${rejected.length} candidate signal(s) were reviewed and dismissed as not real problems, grouped below:`, "");
+      for (const [claim, c] of [...clusters.entries()].sort((a, b) => b[1].count - a[1].count)) {
+        lines.push(`- **${c.count}×** ${claim}`);
+        if (c.rationale) lines.push(`  - Why dismissed: ${c.rationale}`);
+      }
+      lines.push("");
+    }
+
+    // --- Appendix: raw deterministic substrate, only for runtime-only/debug ---
+    if (candidateSignals.length && (runtimeOnly || args.allowRuntimeOnly === true)) {
+      lines.push("## Appendix — runtime candidate signals (deterministic substrate)", "");
+      lines.push("These are raw deterministic signals, NOT findings. They are the substrate an agent reviews; promote only after semantic review.", "");
       for (const sev of ["P0", "P1", "P2", "P3"]) {
         const fs2 = candidateSignals.filter((f) => f.severity === sev);
         if (!fs2.length) continue;
         lines.push(`### ${sev} candidates (${fs2.length})`, "");
-        for (const f of fs2) lines.push(`- **${f.id}** [${f.direction}] ${f.claim}`);
+        for (const f of fs2) lines.push(`- **${f.id}** [${f.direction}] ${f.claim}${f.reviewStatus && f.reviewStatus !== "needs_agent_review" ? ` _(reviewed: ${f.reviewStatus})_` : ""}`);
         lines.push("");
       }
     }

@@ -21,6 +21,8 @@ jobs:
         run: node packages/core/test/run-fixtures.cjs
       - name: Run adapter boundary fixtures
         run: node packages/core/test/adapter-boundary-fixtures.cjs && node packages/core/test/multilanguage-adapters.cjs
+      - name: Run framework pack fixtures
+        run: node packages/core/test/framework-packs.cjs
       - name: Run review decision fixtures
         run: node packages/core/test/review-decision-fixtures.cjs
       - name: Run dashboard review readiness helpers

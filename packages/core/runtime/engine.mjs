@@ -22,6 +22,7 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { scanWithAdapters } from "./adapters/registry.mjs";
+import { scanWithFrameworkPacks } from "./frameworks/registry.mjs";
 
 // The structural + honesty validator is the SAME zero-dep module CI and the MCP
 // server use. Loading it here means assessRepo can never return or write a graph
@@ -247,6 +248,9 @@ function resolveSeverity(input) {
   if (input.intentUnconfirmed) {
     const n = capTo(severity, "P2"); if (n !== severity) applied.push("UNCONFIRMED intent -> <=P2"); severity = n;
   }
+  if (input.circularIntent) {
+    const n = capTo(severity, "P3"); if (n !== severity) applied.push("agent-inferred (circular) intent -> <=P3"); severity = n;
+  }
   if (input.missingCodeResult && input.missingCodeResult !== "absent") {
     const n = capTo(severity, "P2"); if (n !== severity) applied.push(`absence ${input.missingCodeResult} -> <=P2`); severity = n;
   }
@@ -276,11 +280,15 @@ function computeMissingCodeProof(input) {
   };
 }
 
-function headlineTrust(findings) {
+function headlineTrust(findings, provenanceCeiling = "verified") {
   let weakest = "verified";
   for (const f of findings) {
     if (STRENGTH_RANK[f.evidence.strength] < STRENGTH_RANK[weakest]) weakest = f.evidence.strength;
   }
+  // P6: intent provenance caps the headline. No matter how strong the per-finding
+  // evidence is, an alignment story told against agent-inferred intent cannot be
+  // reported as "verified" — the should-be side was never independently confirmed.
+  if (STRENGTH_RANK[provenanceCeiling] < STRENGTH_RANK[weakest]) weakest = provenanceCeiling;
   return weakest;
 }
 
@@ -333,6 +341,9 @@ function hashIntentSpec(spec) {
       .map((c) => ({
         id: c.id,
         owns: [...(c.ownsComponentIds || [])].sort(),
+        // provenance is part of the judged-against identity: re-confirming an
+        // agent-inferred capability as user_confirmed is a different intent.
+        provenance: intentProvenance(c),
         processes: (c.processes || [])
           .map((p) => ({ id: p.id, invariant: p.invariant, critical: !!p.criticalPath }))
           .sort((a, b) => a.id.localeCompare(b.id)),
@@ -342,21 +353,61 @@ function hashIntentSpec(spec) {
   return "ispec:" + crypto.createHash("sha256").update(JSON.stringify(confirmed), "utf8").digest("hex");
 }
 
+// ---------- intent provenance (P5/G2) ----------
+// WHERE a confirmed intent came from is itself evidence. The tool refuses to
+// trust code prose; it must not blindly trust intent prose either. Provenance
+// records the source so trust can be capped (P6) and self-confirmation caught (G3).
+const PROVENANCE_VALUES = new Set(["user_confirmed", "doc_backed", "agent_inferred"]);
+// weakest -> strongest. agent_inferred is the circular case: intent read from the
+// same code being judged, so it can never out-rank inferred evidence.
+const PROVENANCE_RANK = { agent_inferred: 0, doc_backed: 1, user_confirmed: 2 };
+
+/** A capability's provenance. CONFIRMED with no explicit provenance historically meant the user confirmed it. */
+function intentProvenance(cap) {
+  const p = cap?.provenance;
+  if (PROVENANCE_VALUES.has(p)) return p;
+  return "user_confirmed";
+}
+
+/** True when intent was inferred from the same codebase under assessment (circular). */
+function isCircularIntent(cap) {
+  return intentProvenance(cap) === "agent_inferred";
+}
+
+/** Weakest provenance across CONFIRMED capabilities; null when there is no confirmed intent. */
+function weakestConfirmedProvenance(spec) {
+  if (!spec) return null;
+  let weakest = null;
+  for (const cap of spec.capabilities || []) {
+    if (cap.status !== "CONFIRMED") continue;
+    const prov = intentProvenance(cap);
+    if (weakest === null || PROVENANCE_RANK[prov] < PROVENANCE_RANK[weakest]) weakest = prov;
+  }
+  return weakest;
+}
+
+/** P6: the ceiling an intent provenance puts on overall headline trust. */
+function provenanceTrustCeiling(provenance) {
+  // agent_inferred intent -> the alignment story is at best "inferred", never "verified".
+  return provenance === "agent_inferred" ? "inferred" : "verified";
+}
+
 function intentNodes(spec) {
   if (!spec) return [];
   const nodes = [];
   for (const cap of spec.capabilities || []) {
+    const provenance = intentProvenance(cap);
     nodes.push({
       id: cap.id, type: "capability", name: cap.label || cap.id,
       summary: cap.description || "", tags: ["intent"], complexity: "simple",
-      intentMeta: { status: cap.status, owns: cap.ownsComponentIds || [] },
+      intentMeta: { status: cap.status, owns: cap.ownsComponentIds || [], provenance, provenanceRef: cap.provenanceRef },
     });
     for (const p of cap.processes || []) {
       nodes.push({
         id: p.id, type: "intent", name: p.label || p.id,
         summary: p.invariant || "", tags: ["intent", p.criticalPath ? "critical-path" : "normal"],
         complexity: "simple",
-        intentMeta: { status: cap.status, invariant: p.invariant, criticalPath: !!p.criticalPath },
+        intentMeta: { status: cap.status, invariant: p.invariant, criticalPath: !!p.criticalPath, provenance, provenanceRef: cap.provenanceRef },
       });
     }
   }
@@ -383,9 +434,17 @@ export function assessRepo(opts) {
   const languages = [...new Set(allFiles.map((f) => langOf(f.rel)).filter((l) => l !== "Other"))];
 
   // INDEX
-  const scanResult = scanWithAdapters({
+  const adapterScan = scanWithAdapters({
     repoRoot,
     allFiles,
+    langOf,
+    sourceSha256: sha256,
+    normalizedFingerprint,
+  });
+  const frameworkScan = scanWithFrameworkPacks({
+    repoRoot,
+    allFiles,
+    adapterScan,
     langOf,
     sourceSha256: sha256,
     normalizedFingerprint,
@@ -393,13 +452,25 @@ export function assessRepo(opts) {
   const {
     assessedFiles,
     indexedFileCount,
-    componentNodes,
-    factEdges,
-    observations,
     symbolById,
-    limitations: scannerLimitationList,
     adapterRuns,
-  } = scanResult;
+  } = adapterScan;
+  const componentNodes = [
+    ...adapterScan.componentNodes,
+    ...frameworkScan.endpointNodes,
+    ...frameworkScan.resourceNodes,
+    ...frameworkScan.configNodes,
+  ];
+  const factEdges = [
+    ...adapterScan.factEdges,
+    ...frameworkScan.frameworkEdges,
+  ];
+  const observations = [
+    ...adapterScan.observations,
+    ...frameworkScan.observations,
+  ];
+  const scannerLimitationList = [...adapterScan.limitations, ...frameworkScan.limitations].sort();
+  const frameworkRuns = frameworkScan.frameworkRuns;
   const fileSet = new Set(componentNodes.filter((n) => n.type === "file").map((n) => n.filePath));
 
   // ENGINE: deterministic signal generation. These drafts are NOT final findings.
@@ -440,18 +511,31 @@ export function assessRepo(opts) {
   // 0 when there is nothing to index, so an absence claim stays "coverage_insufficient".
   const indexCoverage = assessedFiles.length ? indexedFileCount / assessedFiles.length : 0;
   const capabilityOwns = new Set();
-  if (hasIntent) {
-    const ownsByNode = new Map();
-    for (const cap of spec.capabilities) {
-      if (cap.status !== "CONFIRMED") continue;
-      for (const cid of cap.ownsComponentIds || []) {
-        ownsByNode.set(cid, cap.id);
-        capabilityOwns.add(cid);
-      }
+  const ownsByNode = new Map();
+  // P3 co-location: files that already host a capability-owned component. A
+  // significant export sitting in such a file is far more likely a helper of that
+  // capability (an incomplete ownsComponentIds list) than true scope creep, so it
+  // is a weaker signal than an export in a file no capability claims at all.
+  const ownedFiles = new Set();
+  const fileOfComponentId = (cid) => {
+    // ids look like "function:assess/severity.ts:name" or "file:assess/severity.ts"
+    const body = cid.replace(/^(function|class|file|module):/, "");
+    const m = body.match(/^([^:]+\.[a-z]+)/i);
+    return m ? m[1] : null;
+  };
+  for (const cap of spec?.capabilities || []) {
+    if (cap.status !== "CONFIRMED") continue;
+    for (const cid of cap.ownsComponentIds || []) {
+      ownsByNode.set(cid, cap.id);
+      capabilityOwns.add(cid);
+      const f = fileOfComponentId(cid);
+      if (f) ownedFiles.add(f);
     }
-
+  }
+  if (hasIntent) {
     // 1: intent -> code
     for (const cap of spec.capabilities) {
+      const circular = isCircularIntent(cap); // G3: intent inferred from this same code
       for (const p of cap.processes || []) {
         for (const compId of p.expectedComponentIds || []) {
           const present = symbolById.has(compId) || fileSet.has(compId.replace(/^file:/, ""));
@@ -476,8 +560,14 @@ export function assessRepo(opts) {
           } else { status = "satisfied"; }
           let findingId;
           if (category) {
-            const dec = resolveSeverity({ ruleSeverity, evidenceStrength: "inferred", confidence: "MED", securitySensitive: p.securitySensitive, missingCodeResult: proof?.result });
+            const dec = resolveSeverity({ ruleSeverity, evidenceStrength: "inferred", confidence: "MED", securitySensitive: p.securitySensitive, missingCodeResult: proof?.result, circularIntent: circular });
             findingId = nextId("A");
+            // G3: an intent the agent inferred from the same codebase cannot, on its
+            // own, justify a high-severity "you failed to build X" claim — that would
+            // be the tool grading its own homework. Cap at P3 and force an open question.
+            const circularOpenQuestions = circular
+              ? [`intent "${p.id}" is agent_inferred from this same codebase: alignment is provisional until a human confirms the should-be model`]
+              : [];
             candidateSignalDrafts.push({
               id: findingId, direction: "intent_to_code", category,
               claim: `Promised "${p.label || p.id}" has no implementing path found in the index`,
@@ -486,6 +576,7 @@ export function assessRepo(opts) {
               explanation: dec.applied.length ? dec.applied.join("; ") : "Severity from rubric.",
               recommendation: "Implement the promised behavior or retract the claim from intent.",
               missingCodeProof: proof, targetNodeIds: [compId, p.id], binding: { ...binding },
+              openQuestions: circularOpenQuestions,
             });
             if (!present && !absentNodes.has(compId)) {
               absentNodes.set(compId, {
@@ -509,22 +600,36 @@ export function assessRepo(opts) {
       const mapped = ownsByNode.get(obs.nodeId);
       if (mapped) { gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->${mapped}`, source: obs.nodeId, target: mapped, type: "code_to_intent", direction: "forward", weight: 0.3, gap: { direction: "code_to_intent", status: "justified" }, evidence: { fact: "maps to confirmed capability" } }); continue; }
       if (obs.significance !== "high") continue;
+      // P3: is this export co-located with a capability-owned component?
+      const coLocated = obs.span?.filePath && ownedFiles.has(obs.span.filePath);
       const proof = computeMissingCodeProof({
         searchedRoots: [path.relative(repoRoot, repoRoot) || "."],
         excludedRoots: ["node_modules", "dist", "build"],
         requiredRecordTypes: ["symbol"],
         coverageActual: indexCoverage,
-        lowConfidenceResidues: ["intent spec may be incomplete or owner intent may be unconfirmed"],
+        lowConfidenceResidues: coLocated
+          ? ["component shares a file with a capability-owned component; ownsComponentIds may simply be incomplete"]
+          : ["intent spec may be incomplete or owner intent may be unconfirmed"],
       });
-      const dec = resolveSeverity({ ruleSeverity: "P2", evidenceStrength: "verified", confidence: "MED", intentUnconfirmed: true });
+      // Co-located exports are weak signals (likely an unlisted helper): rule P3, no
+      // intentUnconfirmed P2 framing. Non-co-located exports keep the P2 unexplained signal.
+      const dec = coLocated
+        ? resolveSeverity({ ruleSeverity: "P3", evidenceStrength: "verified", confidence: "MED" })
+        : resolveSeverity({ ruleSeverity: "P2", evidenceStrength: "verified", confidence: "MED", intentUnconfirmed: true });
       const id = nextId("A");
       candidateSignalDrafts.push({
         id, direction: "code_to_intent", category: "alignment.unexplained",
-        claim: "Significant exported component has no confirmed intent mapping in the supplied intent spec",
+        claim: coLocated
+          ? "Exported component is unmapped but shares a file with a capability-owned component (likely an unlisted helper)"
+          : "Significant exported component has no confirmed intent mapping in the supplied intent spec",
         evidence: { fact: obs.evidenceFact, strength: "verified", filePath: obs.span.filePath, lineRange: obs.span.lineRange },
         intentRef: "UNCONFIRMED", severity: dec.severity, confidence: "MED",
-        explanation: "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
-        recommendation: "Confirm whether this is intended; document it in the intent spec or remove it.",
+        explanation: coLocated
+          ? "Code existence is byte-verified; the component sits in a file a capability already owns, so the missing mapping most likely reflects an incomplete ownsComponentIds list rather than scope creep."
+          : "Code existence is byte-verified; absence of a confirmed intent mapping is bounded by the supplied intent spec and index coverage.",
+        recommendation: coLocated
+          ? "If this is a helper of the co-located capability, add it to that capability's ownsComponentIds; otherwise confirm or remove it."
+          : "Confirm whether this is intended; document it in the intent spec or remove it.",
         missingCodeProof: proof, targetNodeIds: [obs.nodeId], binding: { ...binding },
       });
       gapEdges.push({ id: `gap:code_to_intent:${obs.nodeId}->intent:UNCONFIRMED`, source: obs.nodeId, target: "intent:UNCONFIRMED", type: "code_to_intent", direction: "forward", weight: 0.9, gap: { direction: "code_to_intent", status: "unexplained", candidateSignalId: id }, evidence: { fact: "no confirmed intent" } });
@@ -588,19 +693,22 @@ export function assessRepo(opts) {
   const candidateSignals = candidateSignalDrafts.map(toCandidateSignal);
   const finalFindings = [];
   const assessmentNodes = [];
-  const coverage = buildCoverageManifest(stampedNodes, areas, candidateSignals, nodeMap);
-  const summary = summarize(finalFindings, candidateSignals, coverage.headlineTrust, hasIntent, assessedFiles.length, componentNodes.length, assessmentNodes.length);
+  const weakestProv = weakestConfirmedProvenance(spec);
+  const provenanceCeiling = hasIntent ? provenanceTrustCeiling(weakestProv) : "verified";
+  const intentCoverage = buildIntentCoverage(spec, componentNodes, ownsByNode, hasIntent);
+  const coverage = buildCoverageManifest(stampedNodes, areas, candidateSignals, nodeMap, { provenanceCeiling, intentCoverage });
+  const summary = summarize(finalFindings, candidateSignals, coverage.headlineTrust, hasIntent, assessedFiles.length, componentNodes.length, assessmentNodes.length, intentCoverage);
 
   const graph = {
     version: "3.0.0", kind: "assessment", binding,
     project: {
-      name: path.basename(repoRoot), languages, frameworks: detectFrameworks(repoRoot),
+      name: path.basename(repoRoot), languages, frameworks: mergeFrameworkNames(detectFrameworks(repoRoot), frameworkRuns),
       description: hasIntent
         ? "semantic assessment shell: confirmed intent supplied; runtime emitted candidate signals for agent review"
         : "semantic assessment shell: no confirmed intent supplied; runtime emitted fact-layer candidate signals only",
       analyzedAt: generated, gitCommitHash: commit,
     },
-    artifact: buildArtifactMeta(adapterRuns),
+    artifact: buildArtifactMeta(adapterRuns, frameworkRuns),
     intentModel: buildIntentModelSummary(spec),
     assessmentNodes,
     candidateSignals,
@@ -634,17 +742,55 @@ export function assessRepo(opts) {
     fs.renameSync(tmpPath, outPath);
   }
 
+  // G1: the intent-confirmation gate. The two alignment directions only mean
+  // something against a confirmed should-be model. When intent is absent or only
+  // agent-inferred, say so as a first-class state so the caller stops and confirms
+  // with the user rather than silently shipping a baseline-only run as if it were
+  // a full assessment.
+  const intentGate = buildIntentGate(spec, hasIntent, weakestProv, intentCoverage);
+
   return {
     graph,
     outPath,
+    intentGate,
     summary: {
       ...summary,
       hasIntent,
+      intentGate,
       files: assessedFiles.length,
       nodes: stampedNodes.length,
       findings: finalFindings.length,
       candidateSignals: candidateSignals.length,
     },
+  };
+}
+
+// G1: classify the intent-confirmation state and the action the caller should take.
+function buildIntentGate(spec, hasIntent, weakestProv, intentCoverage) {
+  if (!hasIntent) {
+    return {
+      state: "intent_required",
+      provenance: null,
+      blocksDirections: ["intent_to_code", "code_to_intent"],
+      reason: "No confirmed intent was supplied. intent->code and code->intent cannot be assessed; only the engineering baseline ran.",
+      action: "Confirm with the user what this codebase is meant to do (elicit or supply an intent spec), then re-run. Until then, present only baseline->code results.",
+    };
+  }
+  if (weakestProv === "agent_inferred") {
+    return {
+      state: "intent_provisional",
+      provenance: "agent_inferred",
+      blocksDirections: [],
+      reason: "Confirmed intent is agent-inferred from this same codebase (circular). Alignment findings are provisional and capped at P3; headline trust is capped at inferred.",
+      action: "Ask the user to confirm the inferred should-be model before treating any intent<->code finding as authoritative.",
+    };
+  }
+  return {
+    state: "confirmed",
+    provenance: weakestProv,
+    blocksDirections: [],
+    reason: `Confirmed intent supplied (weakest provenance: ${weakestProv}). All three directions were assessed.`,
+    action: null,
   };
 }
 
@@ -672,6 +818,12 @@ function toCandidateSignal(signal) {
         `absence result: ${proof.result}`,
       ]
     : ["deterministic fact layer only; no semantic agent counter-evidence pass has run"];
+  // Preserve any deterministic open questions the draft already carries (e.g. the
+  // G3 provisional note for agent-inferred intent) ahead of the generic review prompt.
+  const openQuestions = [
+    ...(Array.isArray(signal.openQuestions) ? signal.openQuestions : []),
+    "Agent semantic review must decide whether this signal is a high-quality final finding.",
+  ];
   return {
     ...signal,
     source: "runtime_candidate",
@@ -679,11 +831,11 @@ function toCandidateSignal(signal) {
     signalKind: signal.direction === "baseline_to_code" ? "baseline_signal" : "deterministic_gap",
     evidenceRefs: evidenceRefsFor(signal),
     counterEvidenceChecked,
-    openQuestions: ["Agent semantic review must decide whether this signal is a high-quality final finding."],
+    openQuestions,
   };
 }
 
-function buildArtifactMeta(adapterRuns = []) {
+function buildArtifactMeta(adapterRuns = [], frameworkRuns = []) {
   return {
     type: "semantic_assessment",
     factLayerRole: "deterministic_evidence_substrate",
@@ -691,6 +843,7 @@ function buildArtifactMeta(adapterRuns = []) {
     finalFindingsSource: "agent_review_required",
     note: "Runtime emits fact nodes and candidateSignals only. Final findings and semantic assessment nodes must be produced by an agent/human review pass with evidence refs and counter-evidence checks.",
     adapterRuns,
+    frameworkRuns,
   };
 }
 
@@ -751,7 +904,7 @@ function areaCoverage(area, nodes) {
   return counted === 0 ? "not_assessed" : worst;
 }
 
-function buildCoverageManifest(nodes, areas, findings, nodeMap) {
+function buildCoverageManifest(nodes, areas, findings, nodeMap, opts = {}) {
   const byStatus = { assessed: 0, partial: 0, not_assessed: 0, coverage_insufficient: 0 };
   const assessable = nodes.filter((n) => n.type !== "intent" && n.type !== "capability");
   for (const n of assessable) byStatus[n.assessment?.coverageStatus ?? "not_assessed"]++;
@@ -771,7 +924,46 @@ function buildCoverageManifest(nodes, areas, findings, nodeMap) {
       if (reason) gaps.push({ scope: n.name || n.id, status, reason });
     }
   }
-  return { totalAreas: areas.length, totalNodes: assessable.length, byStatus, headlineTrust: headlineTrust(findings), gaps };
+  const provenanceCeiling = opts.provenanceCeiling ?? "verified";
+  const manifest = {
+    totalAreas: areas.length,
+    totalNodes: assessable.length,
+    byStatus,
+    headlineTrust: headlineTrust(findings, provenanceCeiling),
+    gaps,
+  };
+  if (opts.intentCoverage) manifest.intentCoverage = opts.intentCoverage;
+  return manifest;
+}
+
+// P8: alignment coverage, distinct from code coverage. Answers "for how much of
+// the code can we actually speak to intent?" In a huge codebase a 2-capability
+// spec yields a false all-clear unless this ratio is surfaced.
+function buildIntentCoverage(spec, componentNodes, ownsByNode, hasIntent) {
+  if (!hasIntent || !spec) {
+    return {
+      capabilitiesClaimed: 0,
+      componentsTotal: componentNodes.length,
+      componentsMapped: 0,
+      componentsUnmapped: componentNodes.length,
+      mappedRatio: 0,
+      weakestProvenance: null,
+      note: "no confirmed intent: alignment (intent<->code) was not assessed; only the engineering baseline ran",
+    };
+  }
+  const confirmed = (spec.capabilities || []).filter((c) => c.status === "CONFIRMED");
+  const mapped = componentNodes.filter((n) => ownsByNode.has(n.id)).length;
+  const total = componentNodes.length;
+  const ratio = total ? mapped / total : 0;
+  return {
+    capabilitiesClaimed: confirmed.length,
+    componentsTotal: total,
+    componentsMapped: mapped,
+    componentsUnmapped: total - mapped,
+    mappedRatio: Math.round(ratio * 1000) / 1000,
+    weakestProvenance: weakestConfirmedProvenance(spec),
+    note: `${confirmed.length} confirmed capability(ies) map ${mapped}/${total} components; alignment is only assessed for that mapped surface`,
+  };
 }
 
 function countSignalSet(items) {
@@ -786,11 +978,26 @@ function countSignalSet(items) {
   return { bySeverity, byCategory, byDirection };
 }
 
-function summarize(finalFindings, candidateSignals, trust, hasIntent, files, nodes, assessmentNodeCount) {
+function summarize(finalFindings, candidateSignals, trust, hasIntent, files, nodes, assessmentNodeCount, intentCoverage) {
   const finalCounts = countSignalSet(finalFindings);
   const candidateCounts = countSignalSet(candidateSignals);
   const mode = hasIntent ? "intent-bound fact layer" : "baseline-only fact layer (no confirmed intent)";
-  const headline = `${mode}: scanned ${files} code files / ${nodes} fact nodes; runtime produced ${candidateSignals.length} candidate signal(s) and 0 final finding(s). Agent semantic review is required before dashboard findings become authoritative (headline trust: ${trust}).`;
+  // G4: be loud about which directions the run could actually answer. Without
+  // confirmed intent only baseline->code ran; with weak (agent-inferred) intent
+  // the alignment story is provisional. Silence here reads as a false all-clear.
+  let alignmentNote;
+  if (!hasIntent) {
+    alignmentNote = " ALIGNMENT NOT ASSESSED: no confirmed intent, so intent->code and code->intent were skipped; only the engineering baseline ran.";
+  } else if (intentCoverage) {
+    const pct = Math.round((intentCoverage.mappedRatio ?? 0) * 100);
+    const provNote = intentCoverage.weakestProvenance === "agent_inferred"
+      ? " Intent is agent-inferred (provisional): headline trust capped at inferred."
+      : "";
+    alignmentNote = ` Alignment assessed for ${intentCoverage.componentsMapped}/${intentCoverage.componentsTotal} components (${pct}%) across ${intentCoverage.capabilitiesClaimed} confirmed capability(ies).${provNote}`;
+  } else {
+    alignmentNote = "";
+  }
+  const headline = `${mode}: scanned ${files} code files / ${nodes} fact nodes; runtime produced ${candidateSignals.length} candidate signal(s) and 0 final finding(s).${alignmentNote} Agent semantic review is required before dashboard findings become authoritative (headline trust: ${trust}).`;
   return {
     bySeverity: finalCounts.bySeverity,
     byCategory: finalCounts.byCategory,
@@ -805,6 +1012,13 @@ function summarize(finalFindings, candidateSignals, trust, hasIntent, files, nod
   };
 }
 
+
+function mergeFrameworkNames(detectedFrameworks, frameworkRuns = []) {
+  return [...new Set([
+    ...(detectedFrameworks || []),
+    ...frameworkRuns.flatMap((run) => run.frameworkIds || []),
+  ])].sort((a, b) => a.localeCompare(b));
+}
 
 function detectFrameworks(root) {
   const fw = [];

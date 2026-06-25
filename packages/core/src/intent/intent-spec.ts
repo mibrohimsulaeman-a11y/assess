@@ -1,17 +1,27 @@
 import { createHash } from "node:crypto";
-import type { GraphNode } from "../types.js";
+import type { GraphNode, IntentProvenance } from "../types.js";
 import type { IntentExpectation } from "../assess/gap-engine.js";
+
+export type { IntentProvenance };
 
 // INTENT-GATE — the should-be model. assess never invents intent; it elicits and
 // the user CONFIRMS it (see references/intent-elicitation.md). The confirmed
 // spec is hashed; that hash is stamped into every finding's binding so a later
 // run can tell whether a verdict was made against the same intent (VAC §5).
 
+// IntentProvenance is defined in types.ts and re-exported above. It records WHERE a
+// confirmed intent came from (user_confirmed | doc_backed | agent_inferred) so the
+// tool can cap trust and catch self-confirmation, just as span hashes ground code.
+
 export interface CapabilitySpec {
   id: string;          // capability:<kebab>
   label: string;
   description: string;
   status: "CONFIRMED" | "UNCONFIRMED";
+  /** Source of this confirmed intent. Defaults to user_confirmed when omitted (historical meaning of CONFIRMED). */
+  provenance?: IntentProvenance;
+  /** For doc_backed provenance: a pointer to the artifact (path/URL/ticket id). */
+  provenanceRef?: string;
   ownsComponentIds: string[];
   processes: ProcessSpec[];
 }

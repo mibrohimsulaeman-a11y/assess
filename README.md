@@ -79,6 +79,10 @@ the typed helper modules:
 - **`packages/core/runtime/adapters/python.mjs`** and
   **`packages/core/runtime/adapters/go.mjs`**: MVP Python and Go adapters for
   file/symbol facts and baseline candidates.
+- **`packages/core/runtime/frameworks/`**: M6 framework packs. They consume
+  language-adapter facts and source conventions, then emit deterministic
+  endpoint/resource/config facts such as Express, Next.js, FastAPI, and Go HTTP
+  routes. They do not claim auth, correctness, or business behavior.
 - **`plugins/assess/mcp/assess-server.mjs`**: a zero-dependency MCP server
   (JSON-RPC over stdio) exposing `assess_repo`, `validate_graph`,
   `review_queue`, `apply_review_decisions`, `list_findings`,
@@ -94,10 +98,12 @@ the typed helper modules:
 Honest limitation: the JS/TS adapter is parser-backed when `typescript` is
 installed, but it is not Tree-sitter yet and still does not claim a real call
 graph or behavioral partial/misaligned analysis. Python and Go support are MVP
-symbol/file adapters, not full semantic analyzers. Runtime output remains
-candidate-only: `findings` stay empty until an agent/human semantic review
-promotes a signal with evidence refs, counter-evidence checks, and a reasoning
-summary.
+symbol/file adapters, not full semantic analyzers. Framework packs model
+literal/framework-convention endpoint facts only; they do not prove auth,
+request/response schema correctness, middleware behavior, or business behavior.
+Runtime output remains candidate-only: `findings` stay empty until an
+agent/human semantic review promotes a signal with evidence refs,
+counter-evidence checks, and a reasoning summary.
 
 ---
 
@@ -117,6 +123,7 @@ assess/
     core/                           # @assess/core — contracts + typed reference helpers
       src/
         adapters/                   # typed LanguageAdapter contract + scan result types
+        frameworks/                  # typed FrameworkPack contract + scan result types
         fact-layer/                 # scan/index/fingerprint helper modules
         intent/                     # confirmed intent spec + binding hash
         assess/                     # typed gap helpers, missing-code proof, severity, coverage
@@ -125,13 +132,15 @@ assess/
       runtime/adapters/python.mjs   # Python MVP runtime adapter
       runtime/adapters/go.mjs       # Go MVP runtime adapter
       runtime/adapters/registry.mjs # adapter registry + adapter run manifest aggregation
-      runtime/engine.mjs            # zero-dep headless engine (adapter -> graph -> validate)
+      runtime/frameworks/           # Express/Next/FastAPI/Go HTTP framework packs
+      runtime/engine.mjs            # zero-dep headless engine (adapter -> framework packs -> graph -> validate)
       runtime/assess-run.mjs        # optional scan CLI shim (CI/debug only)
       runtime/review-core.mjs       # zero-dep review decision apply engine
       runtime/review-run.mjs        # optional review init/apply/validate CLI shim
       scripts/validate-graph.cjs    # dependency-free graph validator
       test/run-fixtures.cjs         # zero-dep negative fixture suite
       test/adapter-boundary-fixtures.cjs # language adapter boundary fixture
+      test/framework-packs.cjs      # framework pack endpoint fixture
       test/review-decision-fixtures.cjs # review decision workflow fixtures
     dashboard/                      # @assess/dashboard — React + ReactFlow gap map
       src/graph/                    # CoverageMapView, GapGraphView, FindingsView
@@ -167,6 +176,30 @@ languages, parser strategy, indexed file counts, and limitations. New languages
 should add adapters and fixtures; they should not add parser-specific extraction
 logic directly into `runtime/engine.mjs`.
 
+## Framework pack boundary
+
+M6 adds a separate framework fact layer after language adapters:
+
+```text
+runtime/engine.mjs
+  -> runtime language adapter(s)
+  -> runtime framework pack(s)
+  -> deterministic endpoint/resource/config facts
+  -> graph assembly / gap signal generation / validation
+```
+
+| Pack | Runtime file | Facts emitted | Non-claims |
+|---|---|---|---|
+| Express / Fastify | `packages/core/runtime/frameworks/express.mjs` | literal JS/TS route facts from adapter output | middleware ordering, auth, handler behavior |
+| Next.js | `packages/core/runtime/frameworks/nextjs.mjs` | App Router `route.*` and Pages API endpoints | UI page semantics, middleware behavior |
+| FastAPI | `packages/core/runtime/frameworks/fastapi.mjs` | literal decorator endpoints | router prefix composition, DI/auth/response models |
+| Go HTTP | `packages/core/runtime/frameworks/go-http.mjs` | common literal `net/http`, gorilla-style, chi-style handlers | mounted subrouters, middleware/auth |
+
+Each graph stamps `artifact.frameworkRuns`, including pack confidence, endpoint
+counts, edge counts, observation counts, and limitations. Framework packs produce
+facts, not final findings. They enable better semantic review; they do not
+automatically create “missing auth,” “untested endpoint,” or behavioral claims.
+
 ---
 
 ## Assessment model
@@ -188,7 +221,9 @@ It emits findings in three directions:
 The core rule: a finding must not claim more than its evidence supports.
 
 The runtime currently emits missing, unexplained, and baseline-violation
-**candidate signals** from deterministic TS/JS indexing. The typed helper API
+**candidate signals** from deterministic adapter-backed indexing. Framework
+endpoint facts enrich the graph but do not add framework-specific defect claims.
+The typed helper API
 still names `partial` and `misaligned` verdict shapes because the graph contract
 supports them, but the runtime does not claim behavioral partial/misaligned
 detection until stronger analysis exists. Final findings are agent/human-review
@@ -216,6 +251,7 @@ Validate the sample graph, honesty fixtures, and review workflow fixtures withou
 ```bash
 node packages/core/test/run-fixtures.cjs
 node packages/core/test/adapter-boundary-fixtures.cjs
+node packages/core/test/framework-packs.cjs
 node packages/core/test/review-decision-fixtures.cjs
 node packages/core/scripts/validate-graph.cjs packages/dashboard/public/assessment-graph.json
 ```
